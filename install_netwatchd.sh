@@ -88,7 +88,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo "✅ Mode set to: $MODE"
 fi
 
-# --- 5. CREATE SETTINGS (COMMENTS PRESERVED) ---
+# --- 5. CREATE SETTINGS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
 # Router Identification
@@ -101,7 +101,7 @@ MY_ID="$user_id" # Your Discord User ID (for @mentions).
 # Monitoring Settings
 SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
 FAIL_THRESHOLD=3 # Number of failed pings before sending an alert. Default is 3.
-MAX_SIZE=512000  # Max log file size in bytes for the log rotation.
+MAX_SIZE=512000 # Max log file size in bytes for the log rotation in bytes. Default is 512KB
 
 # Internet Connectivity Check
 EXT_IP="$EXT_VAL" # External IP to ping (e.g., 1.1.1.1). Leave empty to disable.
@@ -125,7 +125,7 @@ EOF
     fi
 fi
 
-# --- 6. CREATE SCRIPT ---
+# --- 6. CREATE SCRIPT (With Log Rotation) ---
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -136,6 +136,15 @@ LAST_EXT_CHECK=0
 
 while true; do
     [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+    
+    # Log Rotation Check
+    if [ -f "$LOGFILE" ]; then
+        FILESIZE=$(wc -c < "$LOGFILE")
+        if [ "$FILESIZE" -gt "$MAX_SIZE" ]; then
+            echo "$(date '+%b %d, %H:%M:%S') - Log rotated (max size reached)" > "$LOGFILE"
+        fi
+    fi
+
     NOW_SEC=$(date +%s)
     NOW_HUMAN=$(date '+%b %d, %H:%M:%S')
     PREFIX="📟 **Router:** $ROUTER_NAME\n"
@@ -149,6 +158,7 @@ while true; do
             LAST_EXT_CHECK=$NOW_SEC
             if ! ping -q -c 1 -W 2 "$EXT_IP" > /dev/null 2>&1; then
                 if [ ! -f "$FILE_EXT_DOWN" ]; then
+                    echo "$NOW_HUMAN - ⚠️ INTERNET DOWN" >> "$LOGFILE"
                     echo "$NOW_SEC" > "$FILE_EXT_DOWN"
                     echo "$NOW_HUMAN" > "$FILE_EXT_TIME"
                 fi
@@ -156,6 +166,7 @@ while true; do
                 if [ -f "$FILE_EXT_DOWN" ]; then
                     START_EXT=$(cat "$FILE_EXT_DOWN"); TIME_LOST=$(cat "$FILE_EXT_TIME")
                     D_EXT=$((NOW_SEC - START_EXT)); DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
+                    echo "$NOW_HUMAN - ✅ INTERNET RECOVERY" >> "$LOGFILE"
                     curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🌐 **Internet Restored**\n❌ **Lost at:** $TIME_LOST\n✅ **Restored at:** $NOW_HUMAN\n**Total Outage:** $DUR_EXT$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
                     rm -f "$FILE_EXT_DOWN" "$FILE_EXT_TIME"
                 fi
@@ -177,6 +188,7 @@ while true; do
             if ping -q -c 1 -W 2 "$TARGET_IP" > /dev/null 2>&1; then
                 if [ -f "$F_DOWN" ]; then
                     START=$(cat "$F_DOWN"); D=$((NOW_SEC - START)); DUR="$(($D / 60))m $(($D % 60))s"
+                    echo "$NOW_HUMAN - ✅ RECOVERY: $NAME" >> "$LOGFILE"
                     if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
                         curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX✅ **RECOVERY**: **$NAME** is ONLINE\n**Time:** $NOW_HUMAN\n**Down for:** $DUR$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
                         rm -f "$F_DOWN"
@@ -187,6 +199,7 @@ while true; do
                 COUNT=$(($(cat "$F_COUNT" 2>/dev/null || echo 0) + 1)); echo "$COUNT" > "$F_COUNT"
                 if [ "$COUNT" -eq "$FAIL_THRESHOLD" ] && [ ! -f "$F_DOWN" ]; then
                     echo "$NOW_SEC" > "$F_DOWN"
+                    echo "$NOW_HUMAN - 🔴 DOWN: $NAME" >> "$LOGFILE"
                     if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
                         curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🔴 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n**Time:** $NOW_HUMAN$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
                     fi
