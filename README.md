@@ -1,6 +1,6 @@
 # 📟 netwatchda
 
-**netwatchd** is a lightweight, POSIX-compliant shell daemon for **OpenWrt routers** that monitors both internet connectivity and local LAN devices.  
+**netwatchda** is a lightweight, POSIX-compliant shell daemon for **OpenWrt routers** that monitors both internet connectivity and local LAN devices.  
 It sends **real-time outage and recovery alerts** directly to your **Discord channel** using webhooks.
 
 Designed for reliability, minimal resource usage, and zero bloat.
@@ -39,7 +39,7 @@ wget --no-check-certificate -qO /tmp/install_netwatchda.sh "https://raw.githubus
   - Discord Webhook URL
   - Discord User ID (for mentions)
 - Performs a live Discord connectivity test
-- Registers `netwatchd` as a **procd service** (auto-start on boot)
+- Registers `netwatchda` as a **procd service** (auto-start on boot)
 
 ---
 
@@ -48,12 +48,12 @@ wget --no-check-certificate -qO /tmp/install_netwatchda.sh "https://raw.githubus
 All configuration files are located in:
 
 ```sh
-/root/netwatchd/
+/root/netwatchda/
 ```
 
 ---
 
-### netwatchd_settings.conf
+### netwatchda_settings.conf
 
 Adjust scan intervals, failure thresholds, and logging behavior.
 
@@ -65,7 +65,7 @@ FAIL_THRESHOLD=3    # Alert after 3 consecutive failures
 
 ---
 
-### netwatchd_ips.conf
+### netwatchda_ips.conf
 
 Define LAN devices to monitor.
 
@@ -80,7 +80,7 @@ Define LAN devices to monitor.
 Restart the service after making changes:
 
 ```sh
-/etc/init.d/netwatchd restart
+/etc/init.d/netwatchda restart
 ```
 
 ---
@@ -90,7 +90,7 @@ Restart the service after making changes:
 View resource usage:
 
 ```sh
-top -b -n 1 | grep netwatchd
+top -b -n 1 | grep netwatchda
 ```
 
 ### 🖥️ Option 1: LuCI (Web Interface)
@@ -107,7 +107,7 @@ To view logs without using a terminal:
 
         Name: View NetWatch Logs
 
-        Command: tail -n 50 /tmp/netwatchd_log.txt
+        Command: tail -n 50 /tmp/netwatchda_log.txt
 
   You can now check your monitoring history with one click from your browser.
 
@@ -116,14 +116,14 @@ To view logs without using a terminal:
 Follow connectivity logs in real time:
 
 ```sh
-tail -f /tmp/netwatchd_log.txt
+tail -f /tmp/netwatchda_log.txt
 ```
 
 ---
 
 ## 🗑️ Uninstallation
 
-To remove netwatchd, run the official uninstaller:
+To remove netwatchda, run the official uninstaller:
 
 ```sh
 wget --no-check-certificate -qO /tmp/uninstall_netwatchda.sh "https://raw.githubusercontent.com/panoc/Net-Watch-Discord-Alerts-for-OpenWRT/refs/heads/main/uninstall_netwatchda.sh" && sh /tmp/uninstall_netwatchda.sh
@@ -137,11 +137,11 @@ You will be prompted to:
 
 ## ⚙️ Service Management
 
-- Apply Settings: /etc/init.d/netwatchd restart
-- Stop Monitoring: /etc/init.d/netwatchd stop
-- Start Monitoring: /etc/init.d/netwatchd start
-- Check If Running: /etc/init.d/netwatchd status
-- View Live Logs: tail -f /tmp/netwatchd_log.txt
+- Apply Settings: /etc/init.d/netwatchda restart
+- Stop Monitoring: /etc/init.d/netwatchda stop
+- Start Monitoring: /etc/init.d/netwatchda start
+- Check If Running: /etc/init.d/netwatchda status
+- View Live Logs: tail -f /tmp/netwatchda_log.txt
 
 ## 🤝 Contributing
 
