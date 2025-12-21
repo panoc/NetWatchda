@@ -91,7 +91,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
 
     echo "🧪 Sending initial test notification..."
-    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"📟 **Router Setup**: Basic connectivity test successful for **$router_name_input**! <@$user_id>\"}" "$user_webhook" > /dev/null
+    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"📟 Router Setup\", \"description\": \"Basic connectivity test successful for **$router_name_input**! <@$user_id>\", \"color\": 3447003}]}" "$user_webhook" > /dev/null
     
     printf "❓ Received basic notification? [y/n]: "
     read confirm_test </dev/tty
@@ -113,12 +113,9 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         read hb_test_confirm </dev/tty
         if [ "$hb_test_confirm" = "y" ] || [ "$hb_test_confirm" = "Y" ]; then
             HB_MSG="$NOW_HUMAN | $router_name_input | Router Online"
-            if [ "$HB_MENTION" = "ON" ]; then
-                PAYLOAD="{\"content\": \"💓 **Heartbeat**: $HB_MSG\n🔔 **Attention:** <@$user_id>\"}"
-            else
-                PAYLOAD="{\"content\": \"💓 **Heartbeat**: $HB_MSG\"}"
-            fi
-            curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$user_webhook" > /dev/null
+            DESC="💓 **Heartbeat**: $HB_MSG"
+            [ "$HB_MENTION" = "ON" ] && DESC="$DESC\n🔔 **Attention:** <@$user_id>"
+            curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$DESC\", \"color\": 15844367}]}" "$user_webhook" > /dev/null
             echo "✅ Heartbeat test sent."
         fi
     else
@@ -206,12 +203,9 @@ while true; do
     if [ "$HEARTBEAT" = "ON" ] && [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
         LAST_HB_CHECK=$NOW_SEC
         HB_MSG="$NOW_HUMAN | $ROUTER_NAME | Router Online"
-        if [ "$HB_MENTION" = "ON" ]; then
-            P="{\"content\": \"💓 **Heartbeat**: $HB_MSG$MENTION\"}"
-        else
-            P="{\"content\": \"💓 **Heartbeat**: $HB_MSG\"}"
-        fi
-        curl -s -H "Content-Type: application/json" -X POST -d "$P" "$DISCORD_URL" > /dev/null 2>&1
+        DESC="💓 **Heartbeat**: $HB_MSG"
+        [ "$HB_MENTION" = "ON" ] && DESC="$DESC$MENTION"
+        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$DESC\", \"color\": 15844367}]}" "$DISCORD_URL" > /dev/null 2>&1
     fi
 
     # Internet Check
@@ -226,7 +220,7 @@ while true; do
         else
             if [ -f "$FD" ]; then
                 S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🌐 **Internet Restored**\n❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Outage:** $DR$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🌐 Internet Restored\", \"description\": \"$PREFIX❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Outage:** $DR$MENTION\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null 2>&1
                 rm -f "$FD" "$FT"
             fi
         fi
@@ -239,19 +233,19 @@ while true; do
             case "$line" in ""|\#*) continue ;; esac
             TIP=$(echo "$line" | cut -d'#' -f1 | xargs); NAME=$(echo "$line" | cut -s -d'#' -f2- | xargs)
             [ -z "$NAME" ] && NAME="Unknown"
-            SIP=$(echo "$TIP" | tr '.' '_'); FC="/tmp/nwda_c_$SIP"; FD="/tmp/nwda_d_$SIP"
+            SIP=$(echo "$TIP" | tr '.' '_'); FC="/tmp/nwda_c_$SIP"; FD="/tmp/nwda_d_$SIP"; FT="/tmp/nwda_t_$SIP"
             if ping -q -c 1 -W 2 "$TIP" > /dev/null 2>&1; then
                 if [ -f "$FD" ]; then
-                    S=$(cat "$FD"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
-                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX✅ **RECOVERY**: **$NAME** is ONLINE\n**Down for:** $DR$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
-                    rm -f "$FD"
+                    S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
+                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"✅ Device ONLINE\", \"description\": \"$PREFIX**$NAME** is back online.\n❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Down for:** $DR$MENTION\", \"color\": 3066993}]}" "$DISCORD_URL" > /dev/null 2>&1
+                    rm -f "$FD" "$FT"
                 fi
                 echo 0 > "$FC"
             else
                 C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
                 if [ "$C" -eq "$FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
-                    echo "$NOW_SEC" > "$FD"
-                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🔴 **ALERT**: **$NAME** ($TIP) is DOWN!$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
+                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🔴 Device DOWN!\", \"description\": \"$PREFIX**$NAME** ($TIP) is unreachable.\n**Time:** $NOW_HUMAN$MENTION\", \"color\": 15158332}]}" "$DISCORD_URL" > /dev/null 2>&1
                 fi
             fi
         done < "$IP_LIST_FILE"
@@ -280,7 +274,7 @@ chmod +x "$SERVICE_PATH"
 # --- 6. SUCCESS NOTIFICATION ---
 . "$CONFIG_FILE"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
-curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **netwatchda Service Started**\n**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active in the background.\"}" "$DISCORD_URL" > /dev/null
+curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
 
 rm -- "$0"
 
