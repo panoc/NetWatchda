@@ -33,7 +33,7 @@ if [ -d "$INSTALL_DIR" ] || [ -f "$SERVICE_PATH" ]; then
             KEEP_CONF=1
             echo "📂 Preservation Mode: Configuration files will be kept."
             ;;
-        *)
+        1|*)
             KEEP_CONF=0
             echo "🗑️  Full Uninstall: All files and settings will be deleted."
             ;;
@@ -49,7 +49,8 @@ if [ -f "$SERVICE_PATH" ]; then
     $SERVICE_PATH stop 2>/dev/null
     $SERVICE_PATH disable 2>/dev/null
     # Kill any lingering sleep or script processes
-    killall -9 netwatchda.sh 2>/dev/null
+    pid=$(pgrep -f "netwatchda.sh")
+    [ -n "$pid" ] && kill -9 $pid 2>/dev/null
     rm -f "$SERVICE_PATH"
     echo "✅ Service removed."
 fi
