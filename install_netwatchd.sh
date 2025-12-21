@@ -1,9 +1,13 @@
 #!/bin/sh
+# netwatchd Installer - Automated Setup for OpenWrt
+# Copyright (C) 2025 panoc
+# Licensed under the GNU General Public License v3.0
 
 # --- INITIAL SPACING ---
 echo ""
 echo "-------------------------------------------------------"
-echo "🚀 netwatchd Automated Setup"
+echo "🚀 netwatchd Automated Setup (by panoc)"
+echo "⚖️  License: GNU GPLv3"
 echo "-------------------------------------------------------"
 
 # --- 0. PRE-INSTALLATION CONFIRMATION ---
@@ -169,6 +173,10 @@ fi
 # --- 4. CORE SCRIPT GENERATION ---
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
+# netwatchd - Network Monitoring for OpenWrt
+# Copyright (C) 2025 panoc
+# Licensed under the GNU General Public License v3.0
+
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 IP_LIST_FILE="$BASE_DIR/netwatchd_ips.conf"
 CONFIG_FILE="$BASE_DIR/netwatchd_settings.conf"
@@ -190,7 +198,6 @@ while true; do
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
     IS_INT_DOWN=0
 
-    # Heartbeat: Date time "Router name" - "Router Online"
     if [ "$HEARTBEAT" = "ON" ] && [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
         LAST_HB_CHECK=$NOW_SEC
         HB_MSG="$NOW_HUMAN \"$ROUTER_NAME\" - \"Router Online\""

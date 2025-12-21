@@ -1,9 +1,13 @@
 #!/bin/sh
+# netwatchd Uninstaller
+# Copyright (C) 2025 panoc
+# Licensed under the GNU General Public License v3.0
 
 # --- INITIAL SPACING ---
 echo ""
 echo "-------------------------------------------------------"
 echo "🗑️  Starting netwatchd Uninstallation..."
+echo "👤 Author: panoc"
 echo "-------------------------------------------------------"
 
 INSTALL_DIR="/root/netwatchd"
@@ -22,27 +26,28 @@ if [ -d "$INSTALL_DIR" ] || [ -f "$SERVICE_PATH" ]; then
     case "$choice" in
         3)
             echo "❌ Uninstallation cancelled."
+            echo ""
             exit 0
             ;;
         2)
             KEEP_CONF=1
-            echo "📂 Preservation Mode selected."
+            echo "📂 Preservation Mode: Configuration files will be kept."
             ;;
         *)
             KEEP_CONF=0
-            echo "🗑️  Full Uninstall selected."
+            echo "🗑️  Full Uninstall: All files and settings will be deleted."
             ;;
     esac
 else
-    echo "ℹ️  No installation found to remove."
+    echo "ℹ️  No installation found at $INSTALL_DIR. Nothing to do."
     exit 1
 fi
 
 # --- 2. STOP AND REMOVE SERVICE ---
 if [ -f "$SERVICE_PATH" ]; then
     echo "🛑 Stopping and disabling service..."
-    $SERVICE_PATH stop
-    $SERVICE_PATH disable
+    $SERVICE_PATH stop 2>/dev/null
+    $SERVICE_PATH disable 2>/dev/null
     # Kill any lingering sleep or script processes
     killall -9 netwatchd.sh 2>/dev/null
     rm -f "$SERVICE_PATH"
@@ -61,12 +66,17 @@ echo "✅ Temp files cleared."
 # --- 4. REMOVE INSTALLATION FILES ---
 if [ "$KEEP_CONF" -eq 1 ]; then
     # Specifically remove only the core logic script
-    rm -f "$INSTALL_DIR/netwatchd.sh"
-    echo "✅ Core script removed. Configuration preserved in $INSTALL_DIR"
+    if [ -f "$INSTALL_DIR/netwatchd.sh" ]; then
+        rm -f "$INSTALL_DIR/netwatchd.sh"
+        echo "✅ Core script removed."
+    fi
+    echo "📂 Configuration preserved in $INSTALL_DIR"
 else
-    echo "🗑️  Removing all files in $INSTALL_DIR..."
-    rm -rf "$INSTALL_DIR"
-    echo "✅ All files removed."
+    if [ -d "$INSTALL_DIR" ]; then
+        echo "🗑️  Removing directory $INSTALL_DIR..."
+        rm -rf "$INSTALL_DIR"
+        echo "✅ All files removed."
+    fi
 fi
 
 # --- 5. FINAL CLEANUP ---
