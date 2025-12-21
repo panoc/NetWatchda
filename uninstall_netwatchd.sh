@@ -3,7 +3,7 @@
 # --- INITIAL SPACING ---
 echo ""
 echo "-------------------------------------------------------"
-echo "🗑️  netwatchd Uninstaller (GitHub Version)"
+echo "🗑️  netwatchd Uninstaller"
 echo "-------------------------------------------------------"
 
 INSTALL_DIR="/root/netwatchd"
@@ -17,20 +17,18 @@ if [ -f "$SERVICE_PATH" ]; then
     $SERVICE_PATH disable 2>/dev/null
     rm -f "$SERVICE_PATH"
     echo "✅ System service entry removed."
-else
-    echo "ℹ️  No active service found in $SERVICE_PATH."
 fi
 
-# --- 2. ASK TO KEEP SETTINGS ---
+# --- 2. ASK TO KEEP SETTINGS (Fixed for Pipe/GitHub) ---
 if [ -d "$INSTALL_DIR" ]; then
     echo "---"
+    # We use </dev/tty to force the script to wait for your keyboard input
     printf "❓ Keep configuration files (settings & IP list)? [y/n]: "
-    read keep_choice
+    read keep_choice </dev/tty
 
     case "$keep_choice" in
         y|Y ) 
             echo "💾 Preserving configuration in $INSTALL_DIR"
-            # Remove only the binary/script and logs
             rm -f "$INSTALL_DIR/netwatchd.sh"
             rm -f "$INSTALL_DIR/*.txt" 2>/dev/null
             echo "✅ Core script removed. Settings files remain."
@@ -42,7 +40,7 @@ if [ -d "$INSTALL_DIR" ]; then
             ;;
     esac
 else
-    echo "❌ Directory $INSTALL_DIR not found. Nothing to remove."
+    echo "❌ Directory $INSTALL_DIR not found."
 fi
 
 # --- 3. CLEAN UP TEMP FILES ---
@@ -55,6 +53,3 @@ echo "---"
 echo "✨ netwatchd has been successfully uninstalled."
 echo "-------------------------------------------------------"
 echo ""
-
-# Optional: Self-destruct after running
-# rm -- "$0"
