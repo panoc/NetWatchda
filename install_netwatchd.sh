@@ -85,13 +85,13 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     read user_webhook </dev/tty
     printf "👤 Enter Discord User ID (for @mentions): "
     read user_id </dev/tty
-    printf "🏷️  Enter Router Name (e.g., Home_Router): "
+    printf "🏷️  Enter Router Name (e.g., Panoc_WRT): "
     read router_name_input </dev/tty
     
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
 
     echo "🧪 Sending initial test notification..."
-    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"📟 **Router Setup**: Basic connectivity test successful! <@$user_id>\"}" "$user_webhook" > /dev/null
+    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"📟 **Router Setup**: Basic connectivity test successful for **$router_name_input**! <@$user_id>\"}" "$user_webhook" > /dev/null
     
     printf "❓ Received basic notification? [y/n]: "
     read confirm_test </dev/tty
@@ -112,9 +112,13 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         printf "🧪 Send a Test Heartbeat now to check format? [y/n]: "
         read hb_test_confirm </dev/tty
         if [ "$hb_test_confirm" = "y" ] || [ "$hb_test_confirm" = "Y" ]; then
-            HB_MSG="$NOW_HUMAN \"$router_name_input\" - \"Router Online\""
-            [ "$HB_MENTION" = "ON" ] && P_TEST="$HB_MSG\n🔔 **Attention:** <@$user_id>" || P_TEST="$HB_MSG"
-            curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$P_TEST\"}" "$user_webhook" > /dev/null
+            HB_MSG="$NOW_HUMAN | $router_name_input | Router Online"
+            if [ "$HB_MENTION" = "ON" ]; then
+                PAYLOAD="{\"content\": \"💓 **Heartbeat**: $HB_MSG\n🔔 **Attention:** <@$user_id>\"}"
+            else
+                PAYLOAD="{\"content\": \"💓 **Heartbeat**: $HB_MSG\"}"
+            fi
+            curl -s -H "Content-Type: application/json" -X POST -d "$PAYLOAD" "$user_webhook" > /dev/null
             echo "✅ Heartbeat test sent."
         fi
     else
@@ -198,17 +202,19 @@ while true; do
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
     IS_INT_DOWN=0
 
+    # Heartbeat Logic
     if [ "$HEARTBEAT" = "ON" ] && [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
         LAST_HB_CHECK=$NOW_SEC
-        HB_MSG="$NOW_HUMAN \"$ROUTER_NAME\" - \"Router Online\""
+        HB_MSG="$NOW_HUMAN | $ROUTER_NAME | Router Online"
         if [ "$HB_MENTION" = "ON" ]; then
-            P="$HB_MSG$MENTION"
+            P="{\"content\": \"💓 **Heartbeat**: $HB_MSG$MENTION\"}"
         else
-            P="$HB_MSG"
+            P="{\"content\": \"💓 **Heartbeat**: $HB_MSG\"}"
         fi
-        curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$P\"}" "$DISCORD_URL" > /dev/null 2>&1
+        curl -s -H "Content-Type: application/json" -X POST -d "$P" "$DISCORD_URL" > /dev/null 2>&1
     fi
 
+    # Internet Check
     if [ -n "$EXT_IP" ] && [ $((NOW_SEC - LAST_EXT_CHECK)) -ge "$EXT_INTERVAL" ]; then
         LAST_EXT_CHECK=$NOW_SEC
         FD="/tmp/nw_ext_d"; FT="/tmp/nw_ext_t"
@@ -227,6 +233,7 @@ while true; do
     fi
     [ -f "/tmp/nw_ext_d" ] && IS_INT_DOWN=1
 
+    # Local Device Check
     if [ "$DEVICE_MONITOR" = "ON" ]; then
         while IFS= read -r line || [ -n "$line" ]; do
             case "$line" in ""|\#*) continue ;; esac
@@ -281,12 +288,5 @@ rm -- "$0"
 echo "---"
 echo "✅ Installation complete!"
 echo "📂 Folder: $INSTALL_DIR"
-echo "---"
-echo "Next Steps:"
-echo "1. Edit Settings: $CONFIG_FILE"
-echo "2. Edit IP List:  $IP_LIST_FILE"
-echo "3. Restart:       /etc/init.d/netwatchd restart"
-echo " "
-echo "Monitoring logs: tail -f /tmp/netwatchd_log.txt"
 echo "-------------------------------------------------------"
 echo ""
