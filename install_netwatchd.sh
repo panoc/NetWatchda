@@ -42,7 +42,7 @@ cat <<EOF > "$INSTALL_DIR/netwatchd_ips.conf"
 1.1.1.1 # Cloudflare DNS
 EOF
 
-# 5. Create netwatchd.sh (The actual background logic)
+# 5. Create netwatchd.sh
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -50,7 +50,6 @@ IP_LIST_FILE="$BASE_DIR/netwatchd_ips.conf"
 CONFIG_FILE="$BASE_DIR/netwatchd_settings.conf"
 LOGFILE="/tmp/netwatchd_log.txt"
 
-# Fallbacks
 SCAN_INTERVAL=10; EXT_INTERVAL=30; FAIL_THRESHOLD=3; MAX_SIZE=512000; LAST_EXT_CHECK=0
 
 while true; do
@@ -87,7 +86,6 @@ while true; do
     while IFS= read -r line || [ -n "$line" ]; do
         line=$(echo "$line" | tr -d '\r' | xargs 2>/dev/null || echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
         [ -z "$line" ] || [ "${line#\#}" != "$line" ] && continue
-        
         TARGET_IP=$(echo "$line" | cut -d'#' -f1 | sed 's/[[:space:]]*$//')
         NAME=$(echo "$line" | cut -s -d'#' -f2- | sed 's/^[[:space:]]*//')
         [ -z "$NAME" ] && NAME="Unknown"
@@ -141,7 +139,7 @@ while true; do
 done
 EOF
 
-# 6. Set Permissions and Create Service
+# 6. Service Setup
 chmod +x "$INSTALL_DIR/netwatchd.sh"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
@@ -158,20 +156,15 @@ start_service() {
 EOF
 chmod +x "$SERVICE_PATH"
 
-# 7. Start the Service
+# 7. Enable and Start
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" start
 
 echo "---"
 echo "✅ Installation complete!"
-echo "📂 Files: $INSTALL_DIR"
-echo "🚀 Service started."
+echo "📂 Folder: $INSTALL_DIR"
 echo "---"
-echo "Opening settings in 3 seconds... (Paste Discord Webhook then :wq to save)"
-sleep 3
-vi "$INSTALL_DIR/netwatchd_settings.conf"
-
-# Final Restart
-echo "🔄 Restarting service to apply changes..."
-"$SERVICE_PATH" restart
-echo "✨ All set! Check logs with: tail -f /tmp/netwatchd_log.txt"
+echo "Next Steps:"
+echo "1. Edit Settings: vi $INSTALL_DIR/netwatchd_settings.conf"
+echo "2. Edit IP List:  vi $INSTALL_DIR/netwatchd_ips.conf"
+echo "3. Restart:      /etc/init.d/netwatchd restart"
