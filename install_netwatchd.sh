@@ -70,11 +70,15 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     read user_webhook </dev/tty
     printf "👤 Enter Discord User ID (for @mentions): "
     read user_id </dev/tty
+    printf "🏷️  Enter Router Name (e.g., Home_Router): "
+    read router_name_input </dev/tty
     
-    echo "🧪 Sending test notification..."
-    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"📟 **Router Setup**: Test successful! <@$user_id>\"}" "$user_webhook" > /dev/null
+    NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
+
+    echo "🧪 Sending initial test notification..."
+    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"📟 **Router Setup**: Basic connectivity test successful! <@$user_id>\"}" "$user_webhook" > /dev/null
     
-    printf "❓ Received Discord notification? [y/n]: "
+    printf "❓ Received basic notification? [y/n]: "
     read confirm_test </dev/tty
     [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ] && echo "❌ Aborted." && exit 1
 
@@ -89,6 +93,15 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         printf "🔔 Mention in Heartbeat? [y/n]: "
         read hb_m </dev/tty
         [ "$hb_m" = "y" ] || [ "$hb_m" = "Y" ] && HB_MENTION="ON" || HB_MENTION="OFF"
+
+        printf "🧪 Send a Test Heartbeat now to check format? [y/n]: "
+        read hb_test_confirm </dev/tty
+        if [ "$hb_test_confirm" = "y" ] || [ "$hb_test_confirm" = "Y" ]; then
+            HB_MSG="$NOW_HUMAN \"$router_name_input\" - \"Router Online\""
+            [ "$HB_MENTION" = "ON" ] && P_TEST="$HB_MSG\n🔔 **Attention:** <@$user_id>" || P_TEST="$HB_MSG"
+            curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$P_TEST\"}" "$user_webhook" > /dev/null
+            echo "✅ Heartbeat test sent."
+        fi
     else
         HB_VAL="OFF"; HB_SEC="86400"; HB_MENTION="OFF"
     fi
@@ -109,7 +122,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
 
     cat <<EOF > "$CONFIG_FILE"
 # Router Identification
-ROUTER_NAME="My_OpenWrt_Router" # Name that appears in Discord notifications.
+ROUTER_NAME="$router_name_input" # Name that appears in Discord notifications.
 
 # Discord Settings
 DISCORD_URL="$user_webhook" # Your Discord Webhook URL.
@@ -155,7 +168,6 @@ LAST_HB_CHECK=$(date +%s)
 while true; do
     [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
     
-    # Standard Locale Timestamp for all logs and alerts
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
     NOW_SEC=$(date +%s)
 
@@ -167,7 +179,6 @@ while true; do
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
     IS_INT_DOWN=0
 
-    # Heartbeat: Date time "Router name" - "Router Online"
     if [ "$HEARTBEAT" = "ON" ] && [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
         LAST_HB_CHECK=$NOW_SEC
         HB_MSG="$NOW_HUMAN \"$ROUTER_NAME\" - \"Router Online\""
@@ -239,6 +250,13 @@ EOF
 chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" restart
+
+# --- 6. SUCCESS NOTIFICATION ---
+# Pulling info from the generated config to ensure accuracy
+. "$CONFIG_FILE"
+NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
+curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **netwatchd Service Started**\n**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is now active in the background.\"}" "$DISCORD_URL" > /dev/null
+
 rm -- "$0"
 
 # --- FINAL OUTPUT ---
