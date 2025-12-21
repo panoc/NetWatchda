@@ -67,7 +67,6 @@ else
 fi
 
 # --- 4. CREATE SCRIPT (THE BRAINS) ---
-# This part always updates to ensure you have the latest logic
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -185,7 +184,7 @@ start_service() {
 EOF
 chmod +x "$SERVICE_PATH"
 
-# --- 6. START & CLEANUP ---
+# --- 6. START & FINAL MESSAGE ---
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" restart
 rm -- "$0"
@@ -193,7 +192,8 @@ rm -- "$0"
 echo "---"
 echo "✅ Installation complete!"
 echo "📂 Folder: $INSTALL_DIR"
-if [ "$KEEP_CONFIG" -eq 1 ]; then
-    echo "ℹ️  Settings were preserved."
-fi
 echo "---"
+echo "Next Steps:"
+echo "1. Edit Settings: $INSTALL_DIR/netwatchd_settings.conf"
+echo "2. Edit IP List:   $INSTALL_DIR/netwatchd_ips.conf"
+echo "3. Restart:       /etc/init.d/netwatchd restart"
