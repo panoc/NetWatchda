@@ -63,37 +63,45 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo "✅ Mode set to: $MODE"
 fi
 
-# --- 5. CREATE SETTINGS ---
+# --- 5. CREATE SETTINGS (Comments Restored) ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
-ROUTER_NAME="My_OpenWrt_Router"
-DISCORD_URL="https://discord.com/api/webhooks/Your_Webhook"
-MY_ID="123456789"
-SCAN_INTERVAL=10 
-FAIL_THRESHOLD=3 
-EXT_IP="$EXT_VAL" 
-EXT_INTERVAL=60
-DEVICE_MONITOR="$DEV_VAL"
+# Router Identification
+ROUTER_NAME="My_OpenWrt_Router" # This name appears in Discord notifications.
+
+# Discord Settings
+DISCORD_URL="https://discord.com/api/webhooks/Your_Webhook" # Your Discord Webhook URL.
+MY_ID="123456789" # Your Discord User ID (for @mentions).
+
+# Monitoring Settings
+SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
+FAIL_THRESHOLD=3 # Number of failed pings before sending an alert. Default is 3.
+MAX_SIZE=512000  # Max log file size in bytes.
+
+# Internet Connectivity Check
+EXT_IP="$EXT_VAL" # External IP to ping (e.g., 1.1.1.1). Leave empty to disable.
+EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
+
+# Local Device Monitoring
+DEVICE_MONITOR="$DEV_VAL" # Set to ON to enable local IP monitoring from netwatchd_ips.conf.
 EOF
 
-    # Initialize IP list
+    # Initialize IP list with comments
     cat <<EOF > "$INSTALL_DIR/netwatchd_ips.conf"
 # Format: IP_ADDRESS # NAME
+# Example: 192.168.1.50 # Home Server
 EOF
 
-    # --- AUTO-ADD LOCAL IP IF MONITORING DEVICES ---
     if [ "$DEV_VAL" = "ON" ]; then
         LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
         if [ -n "$LOCAL_IP" ]; then
             echo "$LOCAL_IP # Router Gateway" >> "$INSTALL_DIR/netwatchd_ips.conf"
             echo "🏠 Added local IP ($LOCAL_IP) to monitor list."
-        else
-            echo "8.8.8.8 # Google DNS (Fallback)" >> "$INSTALL_DIR/netwatchd_ips.conf"
         fi
     fi
 fi
 
-# --- 6. CREATE SCRIPT (THE BRAINS) ---
+# --- 6. CREATE SCRIPT ---
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -110,7 +118,6 @@ while true; do
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
     IS_INTERNET_DOWN=0
 
-    # --- PART 1: INTERNET CHECK ---
     if [ -n "$EXT_IP" ]; then
         FILE_EXT_DOWN="/tmp/netwatchd_ext_down"
         FILE_EXT_TIME="/tmp/netwatchd_ext_time"
@@ -124,10 +131,8 @@ while true; do
                 fi
             else
                 if [ -f "$FILE_EXT_DOWN" ]; then
-                    START_EXT=$(cat "$FILE_EXT_DOWN")
-                    TIME_LOST=$(cat "$FILE_EXT_TIME")
-                    D_EXT=$((NOW_SEC - START_EXT))
-                    DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
+                    START_EXT=$(cat "$FILE_EXT_DOWN"); TIME_LOST=$(cat "$FILE_EXT_TIME")
+                    D_EXT=$((NOW_SEC - START_EXT)); DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
                     echo "$NOW_HUMAN - ✅ INTERNET RECOVERY" >> "$LOGFILE"
                     curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🌐 **Internet Restored**\n❌ **Lost at:** $TIME_LOST\n✅ **Restored at:** $NOW_HUMAN\n**Total Outage:** $DUR_EXT$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
                     rm -f "$FILE_EXT_DOWN" "$FILE_EXT_TIME"
@@ -137,7 +142,6 @@ while true; do
         [ -f "$FILE_EXT_DOWN" ] && IS_INTERNET_DOWN=1
     fi
 
-    # --- PART 2: DEVICE CHECK ---
     if [ "$DEVICE_MONITOR" = "ON" ]; then
         while IFS= read -r line || [ -n "$line" ]; do
             line=$(echo "$line" | tr -d '\r' | xargs 2>/dev/null)
@@ -202,3 +206,7 @@ echo "Next Steps:"
 echo "1. Edit Settings: $INSTALL_DIR/netwatchd_settings.conf"
 echo "2. Edit IP List:  $INSTALL_DIR/netwatchd_ips.conf"
 echo "3. Restart:       /etc/init.d/netwatchd restart"
+echo " "
+echo "💡 To test your Discord notification immediately, run:"
+echo ". $INSTALL_DIR/netwatchd_settings.conf && curl -X POST -H 'Content-Type: application/json' -d \"{\\\"content\\\": \\\"📟 **Router:** \$ROUTER_NAME\\\\n✅ **Test**: Webhook is working!\\\"}\" \"\$DISCORD_URL\""
+echo " "
