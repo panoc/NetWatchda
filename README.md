@@ -83,6 +83,16 @@ Restart the service after making changes:
 
 ---
 
+## 📋 Updates for your GitHub
+
+You can now mention in your Features that the script includes a Customizable Heartbeat:
+
+Choose your check-in frequency (e.g., every 12h, 24h, or even 1h).
+
+Toggle mentions specifically for heartbeats to keep your phone quiet while still knowing the system is alive.
+
+
+
 ## 📊 Monitoring & Logs
 
 View resource usage:
