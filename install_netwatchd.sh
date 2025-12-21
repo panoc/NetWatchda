@@ -7,18 +7,12 @@ echo "🚀 Starting netwatchd Automated Setup..."
 echo "-------------------------------------------------------"
 
 INSTALL_DIR="/root/netwatchd"
+CONFIG_FILE="$INSTALL_DIR/netwatchd_settings.conf"
+IP_LIST_FILE="$INSTALL_DIR/netwatchd_ips.conf"
 SERVICE_NAME="netwatchd"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
-BACKUP_DIR="/tmp/netwatchd_backup"
 
-# --- 1. SAFETY BACKUP ---
-if [ -d "$INSTALL_DIR" ]; then
-    echo "💾 Creating safety backup in $BACKUP_DIR..."
-    mkdir -p "$BACKUP_DIR"
-    cp "$INSTALL_DIR"/*.conf "$BACKUP_DIR/" 2>/dev/null
-fi
-
-# --- 2. CHECK DEPENDENCIES ---
+# --- 1. CHECK DEPENDENCIES ---
 echo "📦 Checking dependencies..."
 if ! command -v curl >/dev/null 2>&1; then
     echo "📥 curl not found. Attempting to install..."
@@ -30,25 +24,46 @@ if ! command -v curl >/dev/null 2>&1; then
 fi
 echo "✅ curl is ready."
 
-# --- 3. CHECK FOR EXISTING INSTALLATION ---
+# --- 2. SMART UPGRADE / INSTALL CHECK ---
 KEEP_CONFIG=0
-if [ -d "$INSTALL_DIR" ] || [ -f "$SERVICE_PATH" ]; then
-    echo "⚠️ Existing installation found."
-    printf "Do you want to (c)lean install or (k)eep existing settings? [c/k]: "
+if [ -f "$CONFIG_FILE" ]; then
+    echo "⚠️  Existing installation found."
+    printf "Do you want to (u)pgrade/keep settings or (c)lean install? [u/c]: "
     read choice </dev/tty
-    case "$choice" in
-        k|K ) KEEP_CONFIG=1 ;;
-        * ) 
-            /etc/init.d/netwatchd stop 2>/dev/null
-            rm -f "$SERVICE_PATH"
-            rm -rf "$INSTALL_DIR"
-            ;;
-    esac
+    
+    if [ "$choice" = "u" ] || [ "$choice" = "U" ]; then
+        echo "🔧 Scanning for missing configuration lines..."
+        
+        add_if_missing() {
+            if ! grep -q "^$1=" "$CONFIG_FILE"; then
+                echo "$1=$2 $3" >> "$CONFIG_FILE"
+                echo "  ➕ Added missing line: $1"
+            fi
+        }
+
+        add_if_missing "ROUTER_NAME" "\"My_OpenWrt_Router\"" "# Router ID for Discord"
+        add_if_missing "SCAN_INTERVAL" "10" "# Seconds between pings"
+        add_if_missing "FAIL_THRESHOLD" "3" "# Retries before alert"
+        add_if_missing "MAX_SIZE" "512000" "# Log rotation size in bytes"
+        add_if_missing "HEARTBEAT" "\"OFF\"" "# Daily check-in toggle"
+        add_if_missing "HB_INTERVAL" "86400" "# Heartbeat frequency in seconds"
+        add_if_missing "HB_MENTION" "\"OFF\"" "# Heartbeat tagging toggle"
+        add_if_missing "EXT_IP" "\"1.1.1.1\"" "# Internet check IP"
+        add_if_missing "EXT_INTERVAL" "60" "# Internet check frequency"
+        add_if_missing "DEVICE_MONITOR" "\"ON\"" "# Local monitoring toggle"
+
+        echo "✅ Configuration patch complete."
+        KEEP_CONFIG=1
+    else
+        echo "🧹 Performing clean install..."
+        /etc/init.d/netwatchd stop 2>/dev/null
+        rm -rf "$INSTALL_DIR"
+    fi
 fi
 
 mkdir -p "$INSTALL_DIR"
 
-# --- 4. CLEAN INSTALL INPUTS & VALIDATION ---
+# --- 3. CLEAN INSTALL INPUTS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo "---"
     printf "🔗 Enter Discord Webhook URL: "
@@ -56,42 +71,33 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     printf "👤 Enter Discord User ID (for @mentions): "
     read user_id </dev/tty
     
-    echo "🧪 Sending test notification to Discord..."
-    TEST_PAYLOAD="{\"content\": \"📟 **Router Setup**: Connectivity test successful! <@$user_id>\"}"
-    curl -s -H "Content-Type: application/json" -X POST -d "$TEST_PAYLOAD" "$user_webhook" > /dev/null
+    echo "🧪 Sending test notification..."
+    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"📟 **Router Setup**: Test successful! <@$user_id>\"}" "$user_webhook" > /dev/null
     
-    echo "---"
-    printf "❓ Did you receive the Discord notification? [y/n]: "
+    printf "❓ Received Discord notification? [y/n]: "
     read confirm_test </dev/tty
-    
-    if [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ]; then
-        echo "❌ Installation Aborted. Please check your Webhook URL."
-        rm -rf "$INSTALL_DIR"
-        exit 1
-    fi
+    [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ] && echo "❌ Aborted." && exit 1
 
     echo "---"
     printf "💓 Enable Heartbeat (System check-in)? [y/n]: "
     read hb_enabled </dev/tty
     if [ "$hb_enabled" = "y" ] || [ "$hb_enabled" = "Y" ]; then
         HB_VAL="ON"
-        printf "⏰ Heartbeat interval in HOURS (e.g., 24): "
+        printf "⏰ Interval in HOURS (e.g., 24): "
         read hb_hours </dev/tty
         HB_SEC=$((hb_hours * 3600))
-        printf "🔔 Mention you in Heartbeat messages? [y/n]: "
-        read hb_mention_choice </dev/tty
-        [ "$hb_mention_choice" = "y" ] || [ "$hb_mention_choice" = "Y" ] && HB_MENTION="ON" || HB_MENTION="OFF"
+        printf "🔔 Mention in Heartbeat? [y/n]: "
+        read hb_m </dev/tty
+        [ "$hb_m" = "y" ] || [ "$hb_m" = "Y" ] && HB_MENTION="ON" || HB_MENTION="OFF"
     else
-        HB_VAL="OFF"
-        HB_SEC="86400"
-        HB_MENTION="OFF"
+        HB_VAL="OFF"; HB_SEC="86400"; HB_MENTION="OFF"
     fi
 
     echo "---"
     echo "Select Monitoring Mode:"
     echo "1. Both: Full monitoring (Default)"
-    echo "2. Device Connectivity only"
-    echo "3. Internet Connectivity only"
+    echo "2. Device Connectivity only: Pings local network"
+    echo "3. Internet Connectivity only: Pings external IP"
     printf "Enter choice [1-3]: "
     read mode_choice </dev/tty
 
@@ -100,13 +106,11 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         3) MODE="INTERNET"; EXT_VAL="1.1.1.1"; DEV_VAL="OFF" ;;
         *) MODE="BOTH";     EXT_VAL="1.1.1.1"; DEV_VAL="ON"  ;;
     esac
-fi
+    echo "✅ Mode set to: $MODE"
 
-# --- 5. CREATE SETTINGS ---
-if [ "$KEEP_CONFIG" -eq 0 ]; then
-    cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
+    cat <<EOF > "$CONFIG_FILE"
 # Router Identification
-ROUTER_NAME="My_OpenWrt_Router" # This name appears in Discord notifications to identify which device is reporting.
+ROUTER_NAME="My_OpenWrt_Router" # Name that appears in Discord notifications.
 
 # Discord Settings
 DISCORD_URL="$user_webhook" # Your Discord Webhook URL.
@@ -115,7 +119,7 @@ MY_ID="$user_id" # Your Discord User ID (for @mentions).
 # Monitoring Settings
 SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
 FAIL_THRESHOLD=3 # Number of failed pings before sending an alert. Default is 3.
-MAX_SIZE=512000 # Max log file size in bytes for the log rotation in bytes. Default is 512KB
+MAX_SIZE=512000 # Max log file size in bytes for the log rotation. Default 512KB.
 
 # Heartbeat Settings
 HEARTBEAT="$HB_VAL" # Set to ON to receive a periodic check-in message.
@@ -123,25 +127,23 @@ HB_INTERVAL=$HB_SEC # Interval in seconds.
 HB_MENTION="$HB_MENTION" # Set to ON to include @mention in heartbeats.
 
 # Internet Connectivity Check
-EXT_IP="$EXT_VAL" # External IP to ping (e.g., 1.1.1.1). Leave empty to disable.
+EXT_IP="$EXT_VAL" # External IP to ping. Leave empty to disable.
 EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
 
 # Local Device Monitoring
-DEVICE_MONITOR="$DEV_VAL" # Set to ON to enable local IP monitoring from netwatchd_ips.conf.
+DEVICE_MONITOR="$DEV_VAL" # Set to ON to enable local IP monitoring.
 EOF
 
-    cat <<EOF > "$INSTALL_DIR/netwatchd_ips.conf"
+    cat <<EOF > "$IP_LIST_FILE"
 # Format: IP_ADDRESS # NAME
 # Example: 192.168.1.50 # Home Server
 EOF
-
-    if [ "$DEV_VAL" = "ON" ]; then
-        LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
-        [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP # Router Gateway" >> "$INSTALL_DIR/netwatchd_ips.conf"
-    fi
+    
+    LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
+    [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP # Router Gateway" >> "$IP_LIST_FILE"
 fi
 
-# --- 6. CREATE SCRIPT ---
+# --- 4. CORE SCRIPT GENERATION ---
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -154,80 +156,59 @@ LAST_HB_CHECK=$(date +%s)
 while true; do
     [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
     
-    if [ -f "$LOGFILE" ]; then
-        FILESIZE=$(wc -c < "$LOGFILE")
-        if [ "$FILESIZE" -gt "$MAX_SIZE" ]; then
-            echo "$(date '+%b %d, %H:%M:%S') - Log rotated" > "$LOGFILE"
-        fi
+    if [ -f "$LOGFILE" ] && [ $(wc -c < "$LOGFILE") -gt "$MAX_SIZE" ]; then
+        echo "$(date '+%b %d, %H:%M:%S') - Log rotated" > "$LOGFILE"
     fi
 
     NOW_SEC=$(date +%s)
     NOW_HUMAN=$(date '+%b %d, %H:%M:%S')
     PREFIX="📟 **Router:** $ROUTER_NAME\n"
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
+    IS_INT_DOWN=0
 
-    # Heartbeat Logic
-    if [ "$HEARTBEAT" = "ON" ]; then
-        if [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
-            LAST_HB_CHECK=$NOW_SEC
-            MSG="💚 **Heartbeat**: Monitoring is active."
-            [ "$HB_MENTION" = "ON" ] && FINAL_MSG="$PREFIX$MSG$MENTION" || FINAL_MSG="$PREFIX$MSG\n**Time:** $NOW_HUMAN"
-            curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$FINAL_MSG\"}" "$DISCORD_URL" > /dev/null 2>&1
-        fi
+    if [ "$HEARTBEAT" = "ON" ] && [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
+        LAST_HB_CHECK=$NOW_SEC
+        MSG="💚 **Heartbeat**: Monitoring is active."
+        [ "$HB_MENTION" = "ON" ] && P="$PREFIX$MSG$MENTION" || P="$PREFIX$MSG\n**Time:** $NOW_HUMAN"
+        curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$P\"}" "$DISCORD_URL" > /dev/null 2>&1
     fi
 
-    if [ -n "$EXT_IP" ]; then
-        FILE_EXT_DOWN="/tmp/netwatchd_ext_down"
-        FILE_EXT_TIME="/tmp/netwatchd_ext_time"
-        if [ $((NOW_SEC - LAST_EXT_CHECK)) -ge "$EXT_INTERVAL" ]; then
-            LAST_EXT_CHECK=$NOW_SEC
-            if ! ping -q -c 1 -W 2 "$EXT_IP" > /dev/null 2>&1; then
-                if [ ! -f "$FILE_EXT_DOWN" ]; then
-                    echo "$NOW_HUMAN - ⚠️ INTERNET DOWN" >> "$LOGFILE"
-                    echo "$NOW_SEC" > "$FILE_EXT_DOWN"
-                    echo "$NOW_HUMAN" > "$FILE_EXT_TIME"
-                fi
-            else
-                if [ -f "$FILE_EXT_DOWN" ]; then
-                    START_EXT=$(cat "$FILE_EXT_DOWN"); TIME_LOST=$(cat "$FILE_EXT_TIME")
-                    D_EXT=$((NOW_SEC - START_EXT)); DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
-                    echo "$NOW_HUMAN - ✅ INTERNET RECOVERY" >> "$LOGFILE"
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🌐 **Internet Restored**\n❌ **Lost at:** $TIME_LOST\n✅ **Restored at:** $NOW_HUMAN\n**Total Outage:** $DUR_EXT$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
-                    rm -f "$FILE_EXT_DOWN" "$FILE_EXT_TIME"
-                fi
+    if [ -n "$EXT_IP" ] && [ $((NOW_SEC - LAST_EXT_CHECK)) -ge "$EXT_INTERVAL" ]; then
+        LAST_EXT_CHECK=$NOW_SEC
+        FD="/tmp/nw_ext_d"; FT="/tmp/nw_ext_t"
+        if ! ping -q -c 1 -W 2 "$EXT_IP" > /dev/null 2>&1; then
+            if [ ! -f "$FD" ]; then
+                echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
+                echo "$NOW_HUMAN - ⚠️ INTERNET DOWN" >> "$LOGFILE"
+            fi
+        else
+            if [ -f "$FD" ]; then
+                S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🌐 **Internet Restored**\n❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Outage:** $DR$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
+                rm -f "$FD" "$FT"
             fi
         fi
-        [ -f "$FILE_EXT_DOWN" ] && IS_INTERNET_DOWN=1
     fi
+    [ -f "/tmp/nw_ext_d" ] && IS_INT_DOWN=1
 
     if [ "$DEVICE_MONITOR" = "ON" ]; then
         while IFS= read -r line || [ -n "$line" ]; do
-            line=$(echo "$line" | tr -d '\r' | xargs 2>/dev/null)
-            [ -z "$line" ] || [ "${line#\#}" != "$line" ] && continue
-            TARGET_IP=$(echo "$line" | cut -d'#' -f1 | sed 's/[[:space:]]*$//')
-            NAME=$(echo "$line" | cut -s -d'#' -f2- | sed 's/^[[:space:]]*//')
+            case "$line" in ""|\#*) continue ;; esac
+            TIP=$(echo "$line" | cut -d'#' -f1 | xargs); NAME=$(echo "$line" | cut -s -d'#' -f2- | xargs)
             [ -z "$NAME" ] && NAME="Unknown"
-            SAFE_IP=$(echo "$TARGET_IP" | tr '.' '_')
-            F_COUNT="/tmp/nw_cnt_$SAFE_IP"; F_DOWN="/tmp/nw_down_$SAFE_IP"
-
-            if ping -q -c 1 -W 2 "$TARGET_IP" > /dev/null 2>&1; then
-                if [ -f "$F_DOWN" ]; then
-                    START=$(cat "$F_DOWN"); D=$((NOW_SEC - START)); DUR="$(($D / 60))m $(($D % 60))s"
-                    echo "$NOW_HUMAN - ✅ RECOVERY: $NAME" >> "$LOGFILE"
-                    if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                        curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX✅ **RECOVERY**: **$NAME** is ONLINE\n**Time:** $NOW_HUMAN\n**Down for:** $DUR$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
-                        rm -f "$F_DOWN"
-                    fi
+            SIP=$(echo "$TIP" | tr '.' '_'); FC="/tmp/nw_c_$SIP"; FD="/tmp/nw_d_$SIP"
+            if ping -q -c 1 -W 2 "$TIP" > /dev/null 2>&1; then
+                if [ -f "$FD" ]; then
+                    S=$(cat "$FD"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
+                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX✅ **RECOVERY**: **$NAME** is ONLINE\n**Down for:** $DR$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    rm -f "$FD"
                 fi
-                echo 0 > "$F_COUNT"
+                echo 0 > "$FC"
             else
-                COUNT=$(($(cat "$F_COUNT" 2>/dev/null || echo 0) + 1)); echo "$COUNT" > "$F_COUNT"
-                if [ "$COUNT" -eq "$FAIL_THRESHOLD" ] && [ ! -f "$F_DOWN" ]; then
-                    echo "$NOW_SEC" > "$F_DOWN"
-                    echo "$NOW_HUMAN - 🔴 DOWN: $NAME" >> "$LOGFILE"
-                    if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                        curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🔴 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n**Time:** $NOW_HUMAN$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
-                    fi
+                C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
+                if [ "$C" -eq "$FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
+                    echo "$NOW_SEC" > "$FD"
+                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🔴 **ALERT**: **$NAME** ($TIP) is DOWN!$MENTION\"}" "$DISCORD_URL" > /dev/null 2>&1
                 fi
             fi
         done < "$IP_LIST_FILE"
@@ -236,7 +217,7 @@ while true; do
 done
 EOF
 
-# --- 7. SERVICE SETUP & START ---
+# --- 5. SERVICE SETUP ---
 chmod +x "$INSTALL_DIR/netwatchd.sh"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
@@ -254,6 +235,16 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart
 rm -- "$0"
 
+# --- FINAL OUTPUT ---
 echo "---"
-echo "✅ Installation complete with Heartbeat support!"
+echo "✅ Installation complete!"
 echo "📂 Folder: $INSTALL_DIR"
+echo "---"
+echo "Next Steps:"
+echo "1. Edit Settings: $CONFIG_FILE"
+echo "2. Edit IP List:  $IP_LIST_FILE"
+echo "3. Restart:       /etc/init.d/netwatchd restart"
+echo " "
+echo "Monitoring logs: tail -f /tmp/netwatchd_log.txt"
+echo "-------------------------------------------------------"
+echo ""
