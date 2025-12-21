@@ -137,11 +137,11 @@ You will be prompted to:
 
 ## ⚙️ Service Management
 
-- Apply Settings,/etc/init.d/netwatchd restart
-- Stop Monitoring,/etc/init.d/netwatchd stop
-- Start Monitoring, /etc/init.d/netwatchd start
-- Check If Running,/etc/init.d/netwatchd status
-- View Live Logs,tail -f /tmp/netwatchd_log.txt
+- Apply Settings: /etc/init.d/netwatchd restart
+- Stop Monitoring: /etc/init.d/netwatchd stop
+- Start Monitoring: /etc/init.d/netwatchd start
+- Check If Running: /etc/init.d/netwatchd status
+- View Live Logs: tail -f /tmp/netwatchd_log.txt
 
 ## 🤝 Contributing
 
