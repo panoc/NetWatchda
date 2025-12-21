@@ -19,8 +19,11 @@ if ! command -v curl >/dev/null 2>&1; then
     opkg update && opkg install curl ca-bundle
 fi
 
-# 3. Create netwatchd_settings.conf (Updated Layout)
+# 3. Create netwatchd_settings.conf (Updated with your comment)
 cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
+# Router Identification
+ROUTER_NAME="My_OpenWrt_Router" # This name will now appear at the top of every Discord notification, making it easy to identify which device is reporting if you manage multiple routers.
+
 # Discord Settings
 DISCORD_URL="https://discord.com/api/webhooks/Your_Discord IP"
 MY_ID="123456789123456789"
@@ -57,24 +60,30 @@ while true; do
     
     NOW_SEC=$(date +%s)
     NOW_HUMAN=$(date '+%b %d, %H:%M:%S')
+    PREFIX="📟 **Router:** $ROUTER_NAME\n"
 
     # --- Internet Check ---
     FILE_EXT_DOWN="/tmp/netwatchd_ext_down"
+    FILE_EXT_TIME="/tmp/netwatchd_ext_time"
+    
     if [ $((NOW_SEC - LAST_EXT_CHECK)) -ge "$EXT_INTERVAL" ]; then
         LAST_EXT_CHECK=$NOW_SEC
         if ! ping -q -c 1 -W 2 "$EXT_IP" > /dev/null 2>&1; then
             if [ ! -f "$FILE_EXT_DOWN" ]; then
                 echo "$NOW_HUMAN - ⚠️ INTERNET DOWN" >> "$LOGFILE"
                 echo "$NOW_SEC" > "$FILE_EXT_DOWN"
+                echo "$NOW_HUMAN" > "$FILE_EXT_TIME"
             fi
         else
             if [ -f "$FILE_EXT_DOWN" ]; then
                 START_EXT=$(cat "$FILE_EXT_DOWN")
+                TIME_LOST=$(cat "$FILE_EXT_TIME")
                 D_EXT=$((NOW_SEC - START_EXT))
                 DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
+                
                 echo "$NOW_HUMAN - ✅ INTERNET RECOVERY" >> "$LOGFILE"
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🌐 **Internet Restored**\n🕒 **Time:** $NOW_HUMAN\n⏱️ **Outage Duration:** $DUR_EXT\"}" "$DISCORD_URL" > /dev/null 2>&1
-                rm "$FILE_EXT_DOWN"
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🌐 **Internet Restored**\n❌ **Lost at:** $TIME_LOST\n✅ **Restored at:** $NOW_HUMAN\n⏱️ **Total Outage:** $DUR_EXT\"}" "$DISCORD_URL" > /dev/null 2>&1
+                rm "$FILE_EXT_DOWN" "$FILE_EXT_TIME"
             fi
         fi
     fi
@@ -99,7 +108,7 @@ while true; do
                 START=$(cat "$F_DOWN"); D=$((NOW_SEC - START)); DUR="$(($D / 60))m $(($D % 60))s"
                 echo "$NOW_HUMAN - ✅ RECOVERY: $NAME ($TARGET_IP)" >> "$LOGFILE"
                 if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **RECOVERY**: **$NAME** is ONLINE\n🕒 **Time:** $NOW_HUMAN\n⏱️ **Down for:** $DUR\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX✅ **RECOVERY**: **$NAME** is ONLINE\n🕒 **Time:** $NOW_HUMAN\n⏱️ **Down for:** $DUR\"}" "$DISCORD_URL" > /dev/null 2>&1
                     rm -f "$F_DOWN" "$F_Q_FAIL" "$F_Q_REC"
                 else
                     touch "$F_Q_REC"
@@ -114,7 +123,7 @@ while true; do
                 echo "$NOW_SEC" > "$F_DOWN"
                 echo "$NOW_HUMAN - 🚨 DOWN: $NAME ($TARGET_IP)" >> "$LOGFILE"
                 if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n🕒 **Time:** $NOW_HUMAN\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n🕒 **Time:** $NOW_HUMAN\"}" "$DISCORD_URL" > /dev/null 2>&1
                 else
                     touch "$F_Q_FAIL"
                     echo "$NOW_HUMAN" > "/tmp/nw_time_$SAFE_IP"
@@ -125,11 +134,11 @@ while true; do
         if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
             if [ -f "$F_Q_REC" ]; then
                 DUR_VAL=$(cat "/tmp/nw_dur_$SAFE_IP"); T_VAL=$(cat "/tmp/nw_time_$SAFE_IP")
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** ($TARGET_IP) was DOWN.\n🕒 **Detected at:** $T_VAL\n✅ **Now ONLINE** (Total: $DUR_VAL)\"}" "$DISCORD_URL" > /dev/null 2>&1
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🚨 **$NAME** ($TARGET_IP) was DOWN.\n🕒 **Detected at:** $T_VAL\n✅ **Now ONLINE** (Total: $DUR_VAL)\"}" "$DISCORD_URL" > /dev/null 2>&1
                 rm -f "$F_DOWN" "$F_Q_FAIL" "$F_Q_REC" "/tmp/nw_dur_$SAFE_IP" "/tmp/nw_time_$SAFE_IP"
             elif [ -f "$F_Q_FAIL" ]; then
                 T_VAL=$(cat "/tmp/nw_time_$SAFE_IP")
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n🕒 **Detected at:** $T_VAL\n(Internet was down, reported now)\"}" "$DISCORD_URL" > /dev/null 2>&1
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$PREFIX🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n🕒 **Detected at:** $T_VAL\n(Internet was down, reported now)\"}" "$DISCORD_URL" > /dev/null 2>&1
                 rm -f "$F_Q_FAIL" "/tmp/nw_time_$SAFE_IP"
             fi
         fi
