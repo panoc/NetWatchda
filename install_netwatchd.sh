@@ -84,36 +84,40 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo "✅ Mode set to: $MODE"
 fi
 
-# --- 5. CREATE SETTINGS ---
+# --- 5. CREATE SETTINGS (COMMENTS RESTORED) ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
 # Router Identification
-ROUTER_NAME="My_OpenWrt_Router"
+ROUTER_NAME="My_OpenWrt_Router" # This name appears in Discord notifications to identify which device is reporting.
 
 # Discord Settings
-DISCORD_URL="$user_webhook"
-MY_ID="$user_id"
+DISCORD_URL="$user_webhook" # Your Discord Webhook URL.
+MY_ID="$user_id" # Your Discord User ID (for @mentions).
 
 # Monitoring Settings
-SCAN_INTERVAL=10 
-FAIL_THRESHOLD=3 
-MAX_SIZE=512000  
+SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
+FAIL_THRESHOLD=3 # Number of failed pings before sending an alert. Default is 3.
+MAX_SIZE=512000  # Max log file size in bytes for the log rotation.
 
 # Internet Connectivity Check
-EXT_IP="$EXT_VAL"
-EXT_INTERVAL=60
+EXT_IP="$EXT_VAL" # External IP to ping (e.g., 1.1.1.1). Leave empty to disable.
+EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
 
 # Local Device Monitoring
-DEVICE_MONITOR="$DEV_VAL"
+DEVICE_MONITOR="$DEV_VAL" # Set to ON to enable local IP monitoring from netwatchd_ips.conf.
 EOF
 
     cat <<EOF > "$INSTALL_DIR/netwatchd_ips.conf"
 # Format: IP_ADDRESS # NAME
+# Example: 192.168.1.50 # Home Server
 EOF
 
     if [ "$DEV_VAL" = "ON" ]; then
         LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
-        [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP # Router Gateway" >> "$INSTALL_DIR/netwatchd_ips.conf"
+        if [ -n "$LOCAL_IP" ]; then
+            echo "$LOCAL_IP # Router Gateway" >> "$INSTALL_DIR/netwatchd_ips.conf"
+            echo "🏠 Added local IP ($LOCAL_IP) to monitor list."
+        fi
     fi
 fi
 
