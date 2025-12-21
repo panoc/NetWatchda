@@ -152,13 +152,17 @@ start_service() {
 EOF
 chmod +x "$SERVICE_PATH"
 
-# 7. Start
+# 7. Start & Cleanup
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" restart
+
+# Remove the installer file itself
+rm -- "$0"
 
 echo "---"
 echo "✅ Installation complete!"
 echo "📂 Folder: $INSTALL_DIR"
+echo "🧹 Temporary installation files removed."
 echo "---"
 echo "Next Steps:"
 echo "1. Edit Settings: vi $INSTALL_DIR/netwatchd_settings.conf"
