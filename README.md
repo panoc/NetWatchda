@@ -1,80 +1,41 @@
-📟 netwatchd
+# 📟 netwatchd
 
-A lightweight, POSIX-compliant shell script for OpenWrt routers that monitors internet and local device connectivity. It sends real-time status alerts and recovery notifications directly to your Discord channel using webhooks.
-✨ Features
+**netwatchd** is a lightweight, POSIX-compliant shell daemon for **OpenWrt routers** that monitors both internet connectivity and local LAN devices.  
+It delivers **real-time outage and recovery alerts** straight to your **Discord channel** using webhooks.
 
-    Zero Bloat: Written in pure sh. Uses minimal RAM (~1.2MB).
+Built for reliability, minimal resource usage, and zero bloat.
 
-    Dual Monitoring: Tracks both external internet stability and local LAN device connectivity.
+---
 
-    Smart Alerts: Only sends notifications when the internet is active (prevents "spam" when the whole network is down).
+## ✨ Features
 
-    Discord Integration: Uses Discord Webhooks with <@mention> support for immediate awareness.
+- **Ultra Lightweight**  
+  Written in pure `sh`, using ~**1.2 MB RAM**
 
-    Auto-Recovery Tracking: Calculates and reports the total duration of an outage once a device comes back online.
+- **Dual Connectivity Monitoring**  
+  - External internet availability  
+  - Local LAN device status
 
-    Log Rotation: Built-in protection to ensure log files don't consume your router's RAM.
+- **Smart Alert Logic**  
+  Prevents notification spam when the entire network is offline
 
-🚀 Installation
+- **Discord Webhook Integration**  
+  Supports **@mentions** for immediate visibility
 
-Run the following command in your router's terminal. The installer is interactive and will guide you through the Discord setup and monitoring mode selection.
-Bash
+- **Automatic Recovery Reports**  
+  Calculates and reports total downtime once connectivity is restored
 
-wget -qO- https://raw.githubusercontent.com/YOUR_USERNAME/netwatchd/main/install_netwatchd.sh | sh
+- **Built-in Log Rotation**  
+  Prevents logs from consuming router RAM
 
-What the installer does:
+---
 
-    Checks for dependencies (curl).
+## 🚀 Installation
 
-    Prompts for your Discord Webhook URL and User ID.
+Run the following command in your OpenWrt router’s terminal.  
+The installer is **interactive** and will guide you through setup.
 
-    Performs a Live Connectivity Test to verify your Discord settings.
-
-    Configures netwatchd as a system service (procd) so it starts automatically on boot.
-
-⚙️ Configuration
-
-Files are located in /root/netwatchd/.
-1. netwatchd_settings.conf
-
-Adjust your ping intervals, failure thresholds, and log sizes here.
-Bash
-
-ROUTER_NAME="Home_Router"
-SCAN_INTERVAL=10    # Ping every 10 seconds
-FAIL_THRESHOLD=3    # Alert after 3 consecutive failures
-
-2. netwatchd_ips.conf
-
-Add the local devices you want to monitor.
-Plaintext
-
-# Format: IP_ADDRESS # NAME
-192.168.1.50 # NAS Server
-192.168.1.10 # Smart Home Hub
-
-After editing, restart the service: /etc/init.d/netwatchd restart
-🗑️ Uninstallation
-
-If you wish to remove the service, use the official uninstaller. It will ask if you want to keep your configuration files or perform a full wipe.
-Bash
-
-wget -qO- https://raw.githubusercontent.com/YOUR_USERNAME/netwatchd/main/uninstall_netwatchd.sh | sh
-
-📊 Monitoring Usage
-
-To see the script's resource usage in real-time:
-Bash
-
-top -b -n 1 | grep netwatchd
-
-To view the latest connectivity logs:
-Bash
-
-tail -f /tmp/netwatchd_log.txt
-
-🤝 Contributing
-
-Feel free to open an issue or submit a pull request if you have ideas for optimizations or new notification platforms!
-
-License: MIT
+```sh
+wget -qO /tmp/install_netwatchd.sh \
+"https://raw.githubusercontent.com/panoc/Net-Watch-Discord-Alerts/refs/heads/main/install_netwatchd.sh" \
+&& sh /tmp/install_netwatchd.sh
