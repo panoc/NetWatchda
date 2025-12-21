@@ -6,7 +6,6 @@ echo "-------------------------------------------------------"
 echo "🚀 Starting netwatchd Automated Setup..."
 echo "-------------------------------------------------------"
 
-# --- CONFIGURATION ---
 INSTALL_DIR="/root/netwatchd"
 SERVICE_NAME="netwatchd"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
@@ -66,17 +65,33 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     read confirm_test </dev/tty
     
     if [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ]; then
-        echo "❌ Installation Aborted. Please check your Webhook URL and try again."
+        echo "❌ Installation Aborted. Please check your Webhook URL."
         rm -rf "$INSTALL_DIR"
         exit 1
     fi
-    echo "✅ Connectivity confirmed."
+
+    echo "---"
+    printf "💓 Enable Heartbeat (System check-in)? [y/n]: "
+    read hb_enabled </dev/tty
+    if [ "$hb_enabled" = "y" ] || [ "$hb_enabled" = "Y" ]; then
+        HB_VAL="ON"
+        printf "⏰ Heartbeat interval in HOURS (e.g., 24): "
+        read hb_hours </dev/tty
+        HB_SEC=$((hb_hours * 3600))
+        printf "🔔 Mention you in Heartbeat messages? [y/n]: "
+        read hb_mention_choice </dev/tty
+        [ "$hb_mention_choice" = "y" ] || [ "$hb_mention_choice" = "Y" ] && HB_MENTION="ON" || HB_MENTION="OFF"
+    else
+        HB_VAL="OFF"
+        HB_SEC="86400"
+        HB_MENTION="OFF"
+    fi
 
     echo "---"
     echo "Select Monitoring Mode:"
     echo "1. Both: Full monitoring (Default)"
-    echo "2. Device Connectivity only: Pings local network"
-    echo "3. Internet Connectivity only: Pings external IP"
+    echo "2. Device Connectivity only"
+    echo "3. Internet Connectivity only"
     printf "Enter choice [1-3]: "
     read mode_choice </dev/tty
 
@@ -85,7 +100,6 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         3) MODE="INTERNET"; EXT_VAL="1.1.1.1"; DEV_VAL="OFF" ;;
         *) MODE="BOTH";     EXT_VAL="1.1.1.1"; DEV_VAL="ON"  ;;
     esac
-    echo "✅ Mode set to: $MODE"
 fi
 
 # --- 5. CREATE SETTINGS ---
@@ -103,6 +117,11 @@ SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
 FAIL_THRESHOLD=3 # Number of failed pings before sending an alert. Default is 3.
 MAX_SIZE=512000 # Max log file size in bytes for the log rotation in bytes. Default is 512KB
 
+# Heartbeat Settings
+HEARTBEAT="$HB_VAL" # Set to ON to receive a periodic check-in message.
+HB_INTERVAL=$HB_SEC # Interval in seconds.
+HB_MENTION="$HB_MENTION" # Set to ON to include @mention in heartbeats.
+
 # Internet Connectivity Check
 EXT_IP="$EXT_VAL" # External IP to ping (e.g., 1.1.1.1). Leave empty to disable.
 EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
@@ -118,10 +137,7 @@ EOF
 
     if [ "$DEV_VAL" = "ON" ]; then
         LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
-        if [ -n "$LOCAL_IP" ]; then
-            echo "$LOCAL_IP # Router Gateway" >> "$INSTALL_DIR/netwatchd_ips.conf"
-            echo "🏠 Added local IP ($LOCAL_IP) to monitor list."
-        fi
+        [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP # Router Gateway" >> "$INSTALL_DIR/netwatchd_ips.conf"
     fi
 fi
 
@@ -133,6 +149,7 @@ IP_LIST_FILE="$BASE_DIR/netwatchd_ips.conf"
 CONFIG_FILE="$BASE_DIR/netwatchd_settings.conf"
 LOGFILE="/tmp/netwatchd_log.txt"
 LAST_EXT_CHECK=0
+LAST_HB_CHECK=$(date +%s)
 
 while true; do
     [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
@@ -148,7 +165,16 @@ while true; do
     NOW_HUMAN=$(date '+%b %d, %H:%M:%S')
     PREFIX="📟 **Router:** $ROUTER_NAME\n"
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
-    IS_INTERNET_DOWN=0
+
+    # Heartbeat Logic
+    if [ "$HEARTBEAT" = "ON" ]; then
+        if [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
+            LAST_HB_CHECK=$NOW_SEC
+            MSG="💚 **Heartbeat**: Monitoring is active."
+            [ "$HB_MENTION" = "ON" ] && FINAL_MSG="$PREFIX$MSG$MENTION" || FINAL_MSG="$PREFIX$MSG\n**Time:** $NOW_HUMAN"
+            curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"$FINAL_MSG\"}" "$DISCORD_URL" > /dev/null 2>&1
+        fi
+    fi
 
     if [ -n "$EXT_IP" ]; then
         FILE_EXT_DOWN="/tmp/netwatchd_ext_down"
@@ -210,7 +236,7 @@ while true; do
 done
 EOF
 
-# --- 7. SERVICE SETUP ---
+# --- 7. SERVICE SETUP & START ---
 chmod +x "$INSTALL_DIR/netwatchd.sh"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
@@ -224,18 +250,10 @@ start_service() {
 }
 EOF
 chmod +x "$SERVICE_PATH"
-
-# --- 8. START & FINAL MESSAGE ---
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" restart
 rm -- "$0"
 
 echo "---"
-echo "✅ Installation complete!"
+echo "✅ Installation complete with Heartbeat support!"
 echo "📂 Folder: $INSTALL_DIR"
-echo "---"
-echo "Next Steps:"
-echo "1. Edit Settings: $INSTALL_DIR/netwatchd_settings.conf"
-echo "2. Edit IP List:  $INSTALL_DIR/netwatchd_ips.conf"
-echo "3. Restart:       /etc/init.d/netwatchd restart"
-echo ""
