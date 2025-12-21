@@ -18,6 +18,7 @@ Designed for reliability, minimal resource usage, and zero bloat.
 - **Automatic Recovery Reports** — Calculates and reports total downtime once a device reconnects
 - **Built-in Log Rotation** — Protects router RAM from excessive log growth
 - **Customizable Heartbeat** — Choose your check-in frequency (e.g., every 12h, 24h, or even 1h) and toggle mentions specifically for heartbeats to keep your phone quiet while still knowing the system is alive.
+- **LuCI Integration:** — Easy ways to view logs directly from the OpenWrt web interface.
   
 ---
 
@@ -91,6 +92,26 @@ View resource usage:
 ```sh
 top -b -n 1 | grep netwatchd
 ```
+
+#🖥️ Option 1: LuCI (Web Interface)
+
+To view logs without using a terminal:
+
+- System Log: Go to Status > System Log. This shows service events (start/stop).
+
+- Detailed History: If you have luci-app-commands installed:
+
+        Go to System > Custom Commands.
+
+        Click Add.
+
+        Name: View NetWatch Logs
+
+        Command: tail -n 50 /tmp/netwatchd_log.txt
+
+        You can now check your monitoring history with one click from your browser.
+
+- ⌨️ Option 2: Terminal (Standard Commands)
 
 Follow connectivity logs in real time:
 
