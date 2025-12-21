@@ -45,8 +45,14 @@ fi
 
 mkdir -p "$INSTALL_DIR"
 
-# --- 4. MONITORING MODE SELECTION ---
+# --- 4. CLEAN INSTALL INPUTS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
+    echo "---"
+    printf "🔗 Enter Discord Webhook URL: "
+    read user_webhook
+    printf "👤 Enter Discord User ID (for @mentions): "
+    read user_id
+    
     echo "---"
     echo "Select Monitoring Mode:"
     echo "1. Both: Full monitoring (Default)"
@@ -63,15 +69,15 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo "✅ Mode set to: $MODE"
 fi
 
-# --- 5. CREATE SETTINGS (Comments Restored) ---
+# --- 5. CREATE SETTINGS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
 # Router Identification
 ROUTER_NAME="My_OpenWrt_Router" # This name appears in Discord notifications.
 
 # Discord Settings
-DISCORD_URL="https://discord.com/api/webhooks/Your_Webhook" # Your Discord Webhook URL.
-MY_ID="123456789" # Your Discord User ID (for @mentions).
+DISCORD_URL="$user_webhook" # Your Discord Webhook URL.
+MY_ID="$user_id" # Your Discord User ID (for @mentions).
 
 # Monitoring Settings
 SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
@@ -86,7 +92,7 @@ EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
 DEVICE_MONITOR="$DEV_VAL" # Set to ON to enable local IP monitoring from netwatchd_ips.conf.
 EOF
 
-    # Initialize IP list with comments
+    # Initialize IP list
     cat <<EOF > "$INSTALL_DIR/netwatchd_ips.conf"
 # Format: IP_ADDRESS # NAME
 # Example: 192.168.1.50 # Home Server
