@@ -26,13 +26,13 @@ DISCORD_URL="https://discord.com/api/webhooks/your_id"
 MY_ID="123456789012345678"
 
 # Monitoring Settings
-SCAN_INTERVAL=10 # Default 10 - Check other devices every 10 seconds
-FAIL_THRESHOLD=3 # Default 3. Be careful: With a threshold of 1, a single dropped packet (common on Wi-Fi or busy routers) will trigger a "DOWN" alert immediately. Usually, 2 or 3 is safer.
-MAX_SIZE=512000  # Default 512000. Size in bytes, make use router has enough memory to hold the log.
+SCAN_INTERVAL=10
+FAIL_THRESHOLD=3
+MAX_SIZE=512000
 
 # Internet Check
-EXT_IP="1.1.1.1" # IP to check for internet connectivity.
-EXT_INTERVAL=60  # Default 60 - Check internet every 60 seconds.
+EXT_IP="1.1.1.1"
+EXT_INTERVAL=60
 EOF
 
 # 4. Create netwatchd_ips.conf
@@ -73,7 +73,7 @@ while true; do
                 D_EXT=$((NOW_SEC - START_EXT))
                 DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
                 echo "$NOW_HUMAN - ✅ INTERNET RECOVERY (Down for $DUR_EXT)" >> "$LOGFILE"
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🌐 **Internet Restored**\n⏱️ **Outage Duration:** $DUR_EXT\"}" "$DISCORD_URL" > /dev/null 2>&1
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🌐 **Internet Restored**\n🕒 **Time:** $NOW_HUMAN\n⏱️ **Outage Duration:** $DUR_EXT\"}" "$DISCORD_URL" > /dev/null 2>&1
                 rm "$FILE_EXT_DOWN"
             fi
         fi
@@ -100,11 +100,12 @@ while true; do
                 echo "$NOW_HUMAN - ✅ RECOVERY: $NAME ($TARGET_IP)" >> "$LOGFILE"
                 
                 if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **RECOVERY**: **$NAME** is ONLINE\n⏱️ **Down for:** $DUR\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **RECOVERY**: **$NAME** is ONLINE\n🕒 **Time:** $NOW_HUMAN\n⏱️ **Down for:** $DUR\"}" "$DISCORD_URL" > /dev/null 2>&1
                     rm -f "$F_DOWN" "$F_Q_FAIL" "$F_Q_REC"
                 else
                     touch "$F_Q_REC"
                     echo "$DUR" > "/tmp/nw_dur_$SAFE_IP"
+                    echo "$NOW_HUMAN" > "/tmp/nw_time_$SAFE_IP"
                 fi
             fi
             echo 0 > "$F_COUNT"
@@ -115,21 +116,25 @@ while true; do
                 echo "$NOW_HUMAN - 🚨 DOWN: $NAME ($TARGET_IP)" >> "$LOGFILE"
                 
                 if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n🕒 **Time:** $NOW_HUMAN\"}" "$DISCORD_URL" > /dev/null 2>&1
                 else
                     touch "$F_Q_FAIL"
+                    echo "$NOW_HUMAN" > "/tmp/nw_time_$SAFE_IP"
                 fi
             fi
         fi
 
+        # --- Handle Queue ---
         if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
             if [ -f "$F_Q_REC" ]; then
                 DUR_VAL=$(cat "/tmp/nw_dur_$SAFE_IP")
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** ($TARGET_IP) was DOWN during outage.\n✅ Now ONLINE. (Total Down: $DUR_VAL)\"}" "$DISCORD_URL" > /dev/null 2>&1
-                rm -f "$F_DOWN" "$F_Q_FAIL" "$F_Q_REC" "/tmp/nw_dur_$SAFE_IP"
+                T_VAL=$(cat "/tmp/nw_time_$SAFE_IP")
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** ($TARGET_IP) was DOWN.\n🕒 **Detected at:** $T_VAL\n✅ **Now ONLINE** (Total: $DUR_VAL)\"}" "$DISCORD_URL" > /dev/null 2>&1
+                rm -f "$F_DOWN" "$F_Q_FAIL" "$F_Q_REC" "/tmp/nw_dur_$SAFE_IP" "/tmp/nw_time_$SAFE_IP"
             elif [ -f "$F_Q_FAIL" ]; then
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN! (Reported after recovery)\"}" "$DISCORD_URL" > /dev/null 2>&1
-                rm -f "$F_Q_FAIL"
+                T_VAL=$(cat "/tmp/nw_time_$SAFE_IP")
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\n🕒 **Detected at:** $T_VAL\n(Internet was down, reported now)\"}" "$DISCORD_URL" > /dev/null 2>&1
+                rm -f "$F_Q_FAIL" "/tmp/nw_time_$SAFE_IP"
             fi
         fi
     done < "$IP_LIST_FILE"
@@ -155,14 +160,11 @@ chmod +x "$SERVICE_PATH"
 # 7. Start & Cleanup
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" restart
-
-# Remove the installer file itself
 rm -- "$0"
 
 echo "---"
 echo "✅ Installation complete!"
 echo "📂 Folder: $INSTALL_DIR"
-echo "🧹 Temporary installation files removed."
 echo "---"
 echo "Next Steps:"
 echo "1. Edit Settings: vi $INSTALL_DIR/netwatchd_settings.conf"
