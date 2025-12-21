@@ -1,4 +1,4 @@
-# 📟 netwatchd
+# 📟 netwatchda
 
 **netwatchd** is a lightweight, POSIX-compliant shell daemon for **OpenWrt routers** that monitors both internet connectivity and local LAN devices.  
 It sends **real-time outage and recovery alerts** directly to your **Discord channel** using webhooks.
@@ -28,7 +28,7 @@ Run the following command in your OpenWrt router’s terminal.
 The installer is interactive and will guide you through setup.
 
 ```sh
-wget --no-check-certificate -qO /tmp/install_netwatchd.sh "https://raw.githubusercontent.com/panoc/Net-Watch-Discord-Alerts-for-OpenWRT/refs/heads/main/install_netwatchd.sh" && sh /tmp/install_netwatchd.sh
+wget --no-check-certificate -qO /tmp/install_netwatchda.sh "https://raw.githubusercontent.com/panoc/Net-Watch-Discord-Alerts-for-OpenWRT/refs/heads/main/install_netwatchda.sh" && sh /tmp/install_netwatchda.sh
 
 ```
 
@@ -126,7 +126,7 @@ tail -f /tmp/netwatchd_log.txt
 To remove netwatchd, run the official uninstaller:
 
 ```sh
-wget --no-check-certificate -qO /tmp/uninstall_netwatchd.sh "https://raw.githubusercontent.com/panoc/Net-Watch-Discord-Alerts-for-OpenWRT/refs/heads/main/uninstall_netwatchd.sh" && sh /tmp/uninstall_netwatchd.sh
+wget --no-check-certificate -qO /tmp/uninstall_netwatchd.sh "https://raw.githubusercontent.com/panoc/Net-Watch-Discord-Alerts-for-OpenWRT/refs/heads/main/uninstall_netwatchd.sh" && sh /tmp/uninstall_netwatchda.sh
 ```
 
 You will be prompted to:
