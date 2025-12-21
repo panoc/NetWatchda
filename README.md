@@ -1,7 +1,7 @@
 # 📟 netwatchda
 
-**netwatchda** is a lightweight, POSIX-compliant shell daemon for **OpenWrt routers** that monitors both internet connectivity and local LAN devices.  
-It sends **real-time outage and recovery alerts** directly to your **Discord channel** using webhooks.
+**netwatchda** is a lightweight, POSIX-compliant shell daemon for **OpenWrt routers** that monitors both internet connectivity and local LAN devices designed specifically for OpenWrt routers.  
+It bridges the gap between your network hardware and your mobile device by sending real-time status updates via **Discord** Webhooks.
 
 Designed for easy installation, reliability, minimal resource usage, and zero bloat.
 
@@ -9,15 +9,16 @@ Designed for easy installation, reliability, minimal resource usage, and zero bl
 
 ## ✨ Features
 
+- **Real-Time Discord Alerts**: Get notified instantly when a local device (Server, PC, IoT) or your entire Internet connection goes down.
+- **Smart Recovery Notifications**: Not only tells you when things break but also calculates exactly how long the outage lasted once the connection returns.
+- **System Heartbeat**: Optional periodic "I'm alive" messages so you know your router hasn't frozen or lost power.
+- **Zero-Touch Management**: Includes a comprehensive automated installer and a "bulletproof" uninstaller.
+- **Resource Efficient**: Written in pure POSIX sh for BusyBox, making it perfect for routers with limited flash memory (4MB/8MB+).
+- **Log Rotation**: Automatically manages its own log size in /tmp to prevent filling up your router's RAM.
 - **Ultra Lightweight** — Written in pure `sh`, using ~**1.2 MB RAM**
 - **Dual Connectivity Monitoring**
   - External internet availability
   - Local LAN device reachability
-- **Smart Alert Logic** — Prevents notification spam when the entire network is offline
-- **Discord Webhook Integration** — Supports **@mentions** for instant awareness
-- **Automatic Recovery Reports** — Calculates and reports total downtime once a device reconnects
-- **Built-in Log Rotation** — Protects router RAM from excessive log growth
-- **Customizable Heartbeat** — Choose your check-in frequency (e.g., every 12h, 24h, or even 1h) and toggle mentions specifically for heartbeats to keep your phone quiet while still knowing the system is alive.
 - **LuCI Integration:** — Easy ways to view logs directly from the OpenWrt web interface.
   
 ---
