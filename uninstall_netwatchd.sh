@@ -3,53 +3,58 @@
 # --- INITIAL SPACING ---
 echo ""
 echo "-------------------------------------------------------"
-echo "🗑️  netwatchd Uninstaller"
+echo "🗑️  Starting netwatchd Uninstallation..."
 echo "-------------------------------------------------------"
 
 INSTALL_DIR="/root/netwatchd"
 SERVICE_NAME="netwatchd"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
 
-# --- 1. STOP AND DISABLE SERVICE ---
+# --- 1. STOP AND REMOVE SERVICE ---
 if [ -f "$SERVICE_PATH" ]; then
-    echo "🛑 Stopping and disabling $SERVICE_NAME service..."
-    $SERVICE_PATH stop 2>/dev/null
-    $SERVICE_PATH disable 2>/dev/null
+    echo "🛑 Stopping and disabling service..."
+    $SERVICE_PATH stop
+    $SERVICE_PATH disable
     rm -f "$SERVICE_PATH"
-    echo "✅ System service entry removed."
+    echo "✅ Service removed."
+else
+    echo "ℹ️  Service not found, skipping..."
 fi
 
-# --- 2. ASK TO KEEP SETTINGS (Fixed for Pipe/GitHub) ---
+# --- 2. CLEAN UP TEMPORARY STATE FILES ---
+echo "🧹 Cleaning up temporary state files..."
+rm -f /tmp/netwatchd_log.txt
+rm -f /tmp/nw_ext_d
+rm -f /tmp/nw_ext_t
+rm -f /tmp/nw_c_*
+rm -f /tmp/nw_d_*
+echo "✅ Temp files cleared."
+
+# --- 3. REMOVE INSTALLATION FILES ---
 if [ -d "$INSTALL_DIR" ]; then
     echo "---"
-    # We use </dev/tty to force the script to wait for your keyboard input
-    printf "❓ Keep configuration files (settings & IP list)? [y/n]: "
-    read keep_choice </dev/tty
+    printf "❓ Do you want to delete your configuration files (.conf)? [y/n]: "
+    read del_conf </dev/tty
 
-    case "$keep_choice" in
-        y|Y ) 
-            echo "💾 Preserving configuration in $INSTALL_DIR"
-            rm -f "$INSTALL_DIR/netwatchd.sh"
-            rm -f "$INSTALL_DIR/*.txt" 2>/dev/null
-            echo "✅ Core script removed. Settings files remain."
-            ;;
-        * ) 
-            echo "🧹 Removing all files in $INSTALL_DIR..."
-            rm -rf "$INSTALL_DIR"
-            echo "✅ Entire directory deleted."
-            ;;
-    esac
+    if [ "$del_conf" = "y" ] || [ "$del_conf" = "Y" ]; then
+        echo "🗑️  Removing all files in $INSTALL_DIR..."
+        rm -rf "$INSTALL_DIR"
+        echo "✅ All files removed."
+    else
+        echo "📂 Preservation Mode: Keeping .conf files in $INSTALL_DIR"
+        # We only remove the core script, keeping the .conf files
+        rm -f "$INSTALL_DIR/netwatchd.sh"
+        echo "✅ Core script removed. Configuration preserved."
+    fi
 else
-    echo "❌ Directory $INSTALL_DIR not found."
+    echo "ℹ️  Installation directory not found."
 fi
 
-# --- 3. CLEAN UP TEMP FILES ---
-echo "🧹 Purging temporary state files from RAM..."
-rm -f /tmp/nw_cnt_* 2>/dev/null
-rm -f /tmp/nw_down_* 2>/dev/null
-rm -f /tmp/netwatchd_* 2>/dev/null
+# --- 4. FINAL CLEANUP ---
+# The script deletes itself
+rm -- "$0"
 
 echo "---"
-echo "✨ netwatchd has been successfully uninstalled."
+echo "✨ Uninstallation complete!"
 echo "-------------------------------------------------------"
 echo ""
