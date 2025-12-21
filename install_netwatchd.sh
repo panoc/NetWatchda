@@ -45,7 +45,7 @@ fi
 
 mkdir -p "$INSTALL_DIR"
 
-# --- 4. CLEAN INSTALL INPUTS ---
+# --- 4. CLEAN INSTALL INPUTS & AUTO-TEST ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo "---"
     printf "🔗 Enter Discord Webhook URL: "
@@ -53,6 +53,17 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     printf "👤 Enter Discord User ID (for @mentions): "
     read user_id
     
+    # Automatic Test Notification
+    echo "🧪 Sending test notification to Discord..."
+    TEST_PAYLOAD="{\"content\": \"📟 **Router Setup**: Connectivity test successful! <@$user_id>\"}"
+    curl -s -H "Content-Type: application/json" -X POST -d "$TEST_PAYLOAD" "$user_webhook" > /dev/null
+    
+    if [ $? -eq 0 ]; then
+        echo "✅ Test message sent! Check your Discord."
+    else
+        echo "⚠️ Warning: Test message failed. Please check your Webhook URL."
+    fi
+
     echo "---"
     echo "Select Monitoring Mode:"
     echo "1. Both: Full monitoring (Default)"
@@ -212,7 +223,4 @@ echo "Next Steps:"
 echo "1. Edit Settings: $INSTALL_DIR/netwatchd_settings.conf"
 echo "2. Edit IP List:  $INSTALL_DIR/netwatchd_ips.conf"
 echo "3. Restart:       /etc/init.d/netwatchd restart"
-echo " "
-echo "💡 To test your Discord notification immediately, run:"
-echo ". $INSTALL_DIR/netwatchd_settings.conf && curl -X POST -H 'Content-Type: application/json' -d \"{\\\"content\\\": \\\"📟 **Router:** \$ROUTER_NAME\\\\n✅ **Test**: Webhook is working!\\\"}\" \"\$DISCORD_URL\""
 echo " "
