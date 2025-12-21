@@ -42,7 +42,7 @@ cat <<EOF > "$INSTALL_DIR/netwatchd_ips.conf"
 1.1.1.1 # Cloudflare DNS
 EOF
 
-# 5. Create netwatchd.sh
+# 5. Create netwatchd.sh (The actual background logic)
 cat <<'EOF' > "$INSTALL_DIR/netwatchd.sh"
 #!/bin/sh
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
@@ -50,6 +50,7 @@ IP_LIST_FILE="$BASE_DIR/netwatchd_ips.conf"
 CONFIG_FILE="$BASE_DIR/netwatchd_settings.conf"
 LOGFILE="/tmp/netwatchd_log.txt"
 
+# Fallbacks
 SCAN_INTERVAL=10; EXT_INTERVAL=30; FAIL_THRESHOLD=3; MAX_SIZE=512000; LAST_EXT_CHECK=0
 
 while true; do
@@ -71,7 +72,8 @@ while true; do
         else
             if [ -f "$FILE_EXT_DOWN" ]; then
                 START_EXT=$(cat "$FILE_EXT_DOWN")
-                DUR_EXT="$(( (NOW_SEC - START_EXT) / 60 ))m $(( (NOW_SEC - START_EXT) % 60 ))s"
+                D_EXT=$((NOW_SEC - START_EXT))
+                DUR_EXT="$(($D_EXT / 60))m $(($D_EXT % 60))s"
                 echo "$NOW_HUMAN - ✅ INTERNET RECOVERY (Down for $DUR_EXT)" >> "$LOGFILE"
                 [ -n "$DISCORD_URL" ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🌐 **Network Restored**: **$EXT_IP**\n⏱️ **Outage:** $DUR_EXT\"}" "$DISCORD_URL" > /dev/null 2>&1
                 rm "$FILE_EXT_DOWN"
@@ -85,19 +87,25 @@ while true; do
     while IFS= read -r line || [ -n "$line" ]; do
         line=$(echo "$line" | tr -d '\r' | xargs 2>/dev/null || echo "$line" | sed 's/^[[:space:]]*//;s/[[:space:]]*$//')
         [ -z "$line" ] || [ "${line#\#}" != "$line" ] && continue
+        
         TARGET_IP=$(echo "$line" | cut -d'#' -f1 | sed 's/[[:space:]]*$//')
         NAME=$(echo "$line" | cut -s -d'#' -f2- | sed 's/^[[:space:]]*//')
         [ -z "$NAME" ] && NAME="Unknown"
+
         ping -q -c 1 -W 2 "$TARGET_IP" > /dev/null 2>&1
         STATUS=$?
         SAFE_IP=$(echo "$TARGET_IP" | tr '.' '_')
         F_COUNT="/tmp/nw_cnt_$SAFE_IP"; F_DOWN="/tmp/nw_down_$SAFE_IP"; F_Q_FAIL="/tmp/nw_q_fail_$SAFE_IP"; F_Q_REC="/tmp/nw_q_rec_$SAFE_IP"
+
         if [ "$STATUS" -eq 0 ]; then
             if [ -f "$F_DOWN" ]; then
-                START=$(cat "$F_DOWN"); DUR="$(( (NOW_SEC - START) / 60 ))m $(( (NOW_SEC - START) % 60 ))s"
+                START=$(cat "$F_DOWN"); D=$((NOW_SEC - START)); DUR="$(($D / 60))m $(($D % 60))s"
                 echo "$NOW_HUMAN - ✅ RECOVERY: $NAME ($TARGET_IP) - Down for $DUR" >> "$LOGFILE"
                 if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                    [ -f "$F_Q_FAIL" ] && { curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** went DOWN (Delayed)\"}" "$DISCORD_URL" > /dev/null 2>&1; rm "$F_Q_FAIL"; sleep 1; }
+                    if [ -f "$F_Q_FAIL" ]; then
+                        curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** ($TARGET_IP) went DOWN (Delayed)\"}" "$DISCORD_URL" > /dev/null 2>&1
+                        rm "$F_Q_FAIL"; sleep 1
+                    fi
                     curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **RECOVERY**: **$NAME** is ONLINE\n⏱️ **Down for:** $DUR\"}" "$DISCORD_URL" > /dev/null 2>&1
                     rm "$F_DOWN"
                 else
@@ -109,22 +117,23 @@ while true; do
         else
             COUNT=$(($(cat "$F_COUNT" 2>/dev/null || echo 0) + 1)); echo "$COUNT" > "$F_COUNT"
             if [ "$COUNT" -eq "$FAIL_THRESHOLD" ] && [ ! -f "$F_DOWN" ]; then
-                echo "$NOW_SEC" > "$F_DOWN"; echo "$NOW_HUMAN - 🚨 DOWN: $NAME" >> "$LOGFILE"
+                echo "$NOW_SEC" > "$F_DOWN"; echo "$NOW_HUMAN - 🚨 DOWN: $NAME ($TARGET_IP)" >> "$LOGFILE"
                 if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** is DOWN!\"}" "$DISCORD_URL" > /dev/null 2>&1
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **ALERT**: **$NAME** ($TARGET_IP) is DOWN!\"}" "$DISCORD_URL" > /dev/null 2>&1
                 else
                     touch "$F_Q_FAIL"
                 fi
             fi
         fi
+
         if [ "$IS_INTERNET_DOWN" -eq 0 ]; then
             if [ -f "$F_Q_REC" ]; then
                 DUR_REC=$(cat "$F_Q_REC")
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** went DOWN (Queued)\"}" "$DISCORD_URL" > /dev/null 2>&1; sleep 1
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** ($TARGET_IP) went DOWN (Queued)\"}" "$DISCORD_URL" > /dev/null 2>&1; sleep 1
                 curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **RECOVERY**: **$NAME** is ONLINE\n⏱️ **Down for:** $DUR_REC\"}" "$DISCORD_URL" > /dev/null 2>&1
                 rm -f "$F_DOWN" "$F_Q_REC" "$F_Q_FAIL"
             elif [ -f "$F_Q_FAIL" ]; then
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** is DOWN! (Delayed)\"}" "$DISCORD_URL" > /dev/null 2>&1; rm "$F_Q_FAIL"
+                curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"🚨 **$NAME** ($TARGET_IP) is DOWN! (Delayed)\"}" "$DISCORD_URL" > /dev/null 2>&1; rm "$F_Q_FAIL"
             fi
         fi
     done < "$IP_LIST_FILE"
@@ -132,7 +141,7 @@ while true; do
 done
 EOF
 
-# 6. Service Setup
+# 6. Set Permissions and Create Service
 chmod +x "$INSTALL_DIR/netwatchd.sh"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
@@ -148,18 +157,21 @@ start_service() {
 }
 EOF
 chmod +x "$SERVICE_PATH"
+
+# 7. Start the Service
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" start
 
 echo "---"
 echo "✅ Installation complete!"
-echo "📂 Folder: $INSTALL_DIR"
-echo "🚀 Service is running."
+echo "📂 Files: $INSTALL_DIR"
+echo "🚀 Service started."
 echo "---"
-echo "Opening settings file in 3 seconds... (Paste your Discord URL then save)"
+echo "Opening settings in 3 seconds... (Paste Discord Webhook then :wq to save)"
 sleep 3
 vi "$INSTALL_DIR/netwatchd_settings.conf"
 
-# After user closes vi, remind them to restart
-echo "---"
-echo "💡 To apply your new settings, run: /etc/init.d/netwatchd restart"
+# Final Restart
+echo "🔄 Restarting service to apply changes..."
+"$SERVICE_PATH" restart
+echo "✨ All set! Check logs with: tail -f /tmp/netwatchd_log.txt"
