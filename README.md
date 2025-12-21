@@ -101,17 +101,17 @@ To view logs without using a terminal:
 
 - Detailed History: If you have luci-app-commands installed:
 
-        Go to System > Custom Commands.
+   Go to System > Custom Commands.
 
-        Click Add.
+   Click Add.
 
         Name: View NetWatch Logs
 
         Command: tail -n 50 /tmp/netwatchd_log.txt
 
-        You can now check your monitoring history with one click from your browser.
+  You can now check your monitoring history with one click from your browser.
 
-### ⌨️ Option 2: Terminal (Standard Commands)
+### ⌨️ Option 2: Terminal 
 
 Follow connectivity logs in real time:
 
@@ -134,6 +134,14 @@ You will be prompted to:
 - Or perform a full cleanup
 
 ---
+
+## ⚙️ Service Management
+
+- Apply Settings,/etc/init.d/netwatchd restart
+- Stop Monitoring,/etc/init.d/netwatchd stop
+- Start Monitoring, /etc/init.d/netwatchd start
+- Check If Running,/etc/init.d/netwatchd status
+- View Live Logs,tail -f /tmp/netwatchd_log.txt
 
 ## 🤝 Contributing
 
