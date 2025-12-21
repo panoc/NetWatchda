@@ -21,18 +21,18 @@ fi
 
 # 3. Create netwatchd_settings.conf
 cat <<EOF > "$INSTALL_DIR/netwatchd_settings.conf"
-# --- Discord Settings ---
-DISCORD_URL=""
-MY_ID=""
+# Discord Settings
+DISCORD_URL="https://discord.com/api/webhooks/your_id"
+MY_ID="123456789012345678"
 
-# --- Internet Check ---
-EXT_IP="1.1.1.1"
-EXT_INTERVAL=60
+# Monitoring Settings
+SCAN_INTERVAL=10 # Default 10 - Check other devices every 10 seconds
+FAIL_THRESHOLD=3 # Default 3. Be careful: With a threshold of 1, a single dropped packet (common on Wi-Fi or busy routers) will trigger a "DOWN" alert immediately. Usually, 2 or 3 is safer.
+MAX_SIZE=512000  # Default 512000. Size in bytes, make use router has enough memory to hold the log.
 
-# --- Logic Settings ---
-SCAN_INTERVAL=10
-FAIL_THRESHOLD=3
-MAX_SIZE=512000
+# Internet Check
+EXT_IP="1.1.1.1" # IP to check for internet connectivity.
+EXT_INTERVAL=60  # Default 60 - Check internet every 60 seconds.
 EOF
 
 # 4. Create netwatchd_ips.conf
