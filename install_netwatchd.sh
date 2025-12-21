@@ -3,8 +3,17 @@
 # --- INITIAL SPACING ---
 echo ""
 echo "-------------------------------------------------------"
-echo "🚀 Starting netwatchd Automated Setup..."
+echo "🚀 netwatchd Automated Setup"
 echo "-------------------------------------------------------"
+
+# --- 0. PRE-INSTALLATION CONFIRMATION ---
+printf "This will begin the installation process. Continue? [y/n]: "
+read start_confirm </dev/tty
+if [ "$start_confirm" != "y" ] && [ "$start_confirm" != "Y" ]; then
+    echo "❌ Installation aborted by user."
+    echo ""
+    exit 0
+fi
 
 INSTALL_DIR="/root/netwatchd"
 CONFIG_FILE="$INSTALL_DIR/netwatchd_settings.conf"
@@ -28,10 +37,12 @@ echo "✅ curl is ready."
 KEEP_CONFIG=0
 if [ -f "$CONFIG_FILE" ]; then
     echo "⚠️  Existing installation found."
-    printf "Do you want to (u)pgrade/keep settings or (c)lean install? [u/c]: "
+    echo "1. Keep settings (Upgrade)"
+    echo "2. Clean install"
+    printf "Enter choice [1-2]: "
     read choice </dev/tty
     
-    if [ "$choice" = "u" ] || [ "$choice" = "U" ]; then
+    if [ "$choice" = "1" ]; then
         echo "🔧 Scanning for missing configuration lines..."
         
         add_if_missing() {
@@ -179,6 +190,7 @@ while true; do
     MENTION="\n🔔 **Attention:** <@$MY_ID>"
     IS_INT_DOWN=0
 
+    # Heartbeat: Date time "Router name" - "Router Online"
     if [ "$HEARTBEAT" = "ON" ] && [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
         LAST_HB_CHECK=$NOW_SEC
         HB_MSG="$NOW_HUMAN \"$ROUTER_NAME\" - \"Router Online\""
@@ -252,7 +264,6 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart
 
 # --- 6. SUCCESS NOTIFICATION ---
-# Pulling info from the generated config to ensure accuracy
 . "$CONFIG_FILE"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 curl -s -H "Content-Type: application/json" -X POST -d "{\"content\": \"✅ **netwatchd Service Started**\n**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is now active in the background.\"}" "$DISCORD_URL" > /dev/null
