@@ -5,30 +5,27 @@ INSTALL_DIR="/root/netwatchd"
 SERVICE_NAME="netwatchd"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
 
-echo "🗑️ Uninstalling netwatchd..."
+echo "🗑️ Starting Force Uninstall..."
 
-# 1. Stop and Disable the Service
+# 1. Kill the process manually if it's stuck
+echo "🛑 Killing any running netwatchd processes..."
+pgrep -f "netwatchd.sh" | xargs kill -9 > /dev/null 2>&1
+
+# 2. Stop and Disable the System Service
 if [ -f "$SERVICE_PATH" ]; then
-    echo "🛑 Stopping and disabling service..."
-    $SERVICE_PATH stop
-    $SERVICE_PATH disable
+    echo "🚫 Disabling system service..."
+    $SERVICE_PATH stop > /dev/null 2>&1
+    $SERVICE_PATH disable > /dev/null 2>&1
     rm -f "$SERVICE_PATH"
 fi
 
-# 2. Remove the Application Directory
-if [ -d "$INSTALL_DIR" ]; then
-    echo "📁 Removing directory $INSTALL_DIR..."
-    rm -rf "$INSTALL_DIR"
-fi
+# 3. Remove the Files
+echo "📁 Deleting application files at $INSTALL_DIR..."
+rm -rf "$INSTALL_DIR"
 
-# 3. Clean up temporary files and logs
-echo "🧹 Cleaning up temporary logs and status files..."
-rm -f /tmp/netwatchd_log.txt
-rm -f /tmp/netwatchd_ext_down
-rm -f /tmp/nw_cnt_*
-rm -f /tmp/nw_down_*
-rm -f /tmp/nw_q_*
+# 4. Clean RAM (Temporary Files)
+echo "🧹 Clearing logs and temp data..."
+rm -f /tmp/netwatchd*
+rm -f /tmp/nw_*
 
-echo "---"
-echo "✅ netwatchd has been successfully uninstalled."
-echo "💡 Your router is now clean."
+echo "✅ Uninstall Complete. Everything has been removed."
