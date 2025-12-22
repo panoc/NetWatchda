@@ -6,10 +6,10 @@
 # --- COLOR DEFINITIONS (VIBRANT & HIGH CONTRAST) ---
 NC='\033[0m'       
 BOLD='\033[1m'
-RED='\033[1;31m'    # Light Red (High Visibility)
+RED='\033[1;31m'    # Light Red
 GREEN='\033[1;32m'  # Light Green
-BLUE='\033[1;34m'   # Light Blue
-CYAN='\033[1;36m'   # Light Cyan
+BLUE='\033[1;34m'   # Light Blue (Vibrant)
+CYAN='\033[1;36m'   # Light Cyan (Vibrant)
 YELLOW='\033[1;33m' # Bold Yellow
 
 # --- INITIAL SPACING ---
@@ -163,7 +163,7 @@ HB_INTERVAL=$HB_SEC # Interval in seconds. Default is 86400
 HB_MENTION="$HB_MENTION" # Set to ON to include @mention in heartbeats.
 
 # Internet Connectivity Check
-EXT_IP="$EXT_VAL" # External IP to ping. Leave empty to disable.
+EXT_IP="$EXT_IP" # External IP to ping. Leave empty to disable.
 EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
 
 # Local Device Monitoring
