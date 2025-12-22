@@ -118,6 +118,7 @@ if [ -f "$CONFIG_FILE" ]; then
         add_if_missing "DEV_PING_COUNT" "4" "# Number of pings per device check interval. Default 4."
         add_if_missing "DEV_SCAN_INTERVAL" "10" "# Seconds between device pings. Default is 10."
         add_if_missing "DEV_FAIL_THRESHOLD" "3" "# Failed cycles before alert. Default 3."
+        add_if_missing "SILENT_ENABLE" "\"OFF\"" "# Set to ON to enable silent hours mode."
         add_if_missing "SILENT_START" "23" "# Hour to start silent mode (0-23)."
         add_if_missing "SILENT_END" "07" "# Hour to end silent mode (0-23)."
 
@@ -143,28 +144,32 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     read router_name_input </dev/tty
 
     echo -e "\n${BLUE}--- Silent Hours (No Discord Alerts) ---${NC}"
+    printf "${BOLD}🌙 Enable Silent Hours? [y/n]: ${NC}"
+    read enable_silent_choice </dev/tty
     
-    # Validation Loop for Silent Start
-    while :; do
-        printf "${BOLD}🌙 Start Hour (0-23, e.g., 23 for 11PM): ${NC}"
-        read user_silent_start </dev/tty
-        if echo "$user_silent_start" | grep -qE '^[0-9]+$' && [ "$user_silent_start" -ge 0 ] && [ "$user_silent_start" -le 23 ] 2>/dev/null; then
-            break
-        else
-            echo -e "${RED}❌ Invalid input. Please enter a number between 0 and 23.${NC}"
-        fi
-    done
-
-    # Validation Loop for Silent End
-    while :; do
-        printf "${BOLD}☀️  End Hour (0-23, e.g., 07 for 7AM): ${NC}"
-        read user_silent_end </dev/tty
-        if echo "$user_silent_end" | grep -qE '^[0-9]+$' && [ "$user_silent_end" -ge 0 ] && [ "$user_silent_end" -le 23 ] 2>/dev/null; then
-            break
-        else
-            echo -e "${RED}❌ Invalid input. Please enter a number between 0 and 23.${NC}"
-        fi
-    done
+    if [ "$enable_silent_choice" = "y" ] || [ "$enable_silent_choice" = "Y" ]; then
+        SILENT_VAL="ON"
+        while :; do
+            printf "${BOLD}   > Start Hour (0-23, e.g., 23 for 11PM): ${NC}"
+            read user_silent_start </dev/tty
+            if echo "$user_silent_start" | grep -qE '^[0-9]+$' && [ "$user_silent_start" -ge 0 ] && [ "$user_silent_start" -le 23 ] 2>/dev/null; then
+                break
+            else
+                echo -e "${RED}   ❌ Invalid hour (0-23).${NC}"
+            fi
+        done
+        while :; do
+            printf "${BOLD}   > End Hour (0-23, e.g., 07 for 7AM): ${NC}"
+            read user_silent_end </dev/tty
+            if echo "$user_silent_end" | grep -qE '^[0-9]+$' && [ "$user_silent_end" -ge 0 ] && [ "$user_silent_end" -le 23 ] 2>/dev/null; then
+                break
+            else
+                echo -e "${RED}   ❌ Invalid hour (0-23).${NC}"
+            fi
+        done
+    else
+        SILENT_VAL="OFF"; user_silent_start="23"; user_silent_end="07"
+    fi
     
     # --- TEST NOTIFICATION ---
     echo -e "\n${CYAN}🧪 Sending initial test notification...${NC}"
@@ -217,6 +222,7 @@ ROUTER_NAME="$router_name_input" # Name that appears in Discord notifications.
 [Discord Settings]
 DISCORD_URL="$user_webhook" # Your Discord Webhook URL.
 MY_ID="$user_id" # Your Discord User ID (for @mentions).
+SILENT_ENABLE="$SILENT_VAL" # Set to ON to enable silent hours mode.
 SILENT_START=$user_silent_start # Hour to start silent mode (0-23).
 SILENT_END=$user_silent_end # Hour to end silent mode (0-23).
 
@@ -269,7 +275,7 @@ LAST_EXT_CHECK=0
 LAST_DEV_CHECK=0
 LAST_HB_CHECK=$(date +%s)
 
-# Load config helper
+# Load config helper safely (strips INI headers)
 load_config() {
     [ -f "$CONFIG_FILE" ] && eval "$(sed '/^\[.*\]/d' "$CONFIG_FILE")"
 }
@@ -283,10 +289,12 @@ while true; do
 
     # Silent Mode Logic
     IS_SILENT=0
-    if [ "$SILENT_START" -le "$SILENT_END" ]; then
-        if [ "$CUR_HOUR" -ge "$SILENT_START" ] && [ "$CUR_HOUR" -lt "$SILENT_END" ]; then IS_SILENT=1; fi
-    else
-        if [ "$CUR_HOUR" -ge "$SILENT_START" ] || [ "$CUR_HOUR" -lt "$SILENT_END" ]; then IS_SILENT=1; fi
+    if [ "$SILENT_ENABLE" = "ON" ]; then
+        if [ "$SILENT_START" -le "$SILENT_END" ]; then
+            if [ "$CUR_HOUR" -ge "$SILENT_START" ] && [ "$CUR_HOUR" -lt "$SILENT_END" ]; then IS_SILENT=1; fi
+        else
+            if [ "$CUR_HOUR" -ge "$SILENT_START" ] || [ "$CUR_HOUR" -lt "$SILENT_END" ]; then IS_SILENT=1; fi
+        fi
     fi
 
     # Log Rotation Check
