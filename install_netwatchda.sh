@@ -41,6 +41,7 @@ CONFIG_FILE="$INSTALL_DIR/netwatchda_settings.conf"
 IP_LIST_FILE="$INSTALL_DIR/netwatchda_ips.conf"
 SERVICE_NAME="netwatchda"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
+LOGFILE="/tmp/netwatchda_log.txt"
 
 # --- 1. CHECK DEPENDENCIES ---
 echo -e "\n${BOLD}📦 Checking dependencies...${NC}"
@@ -177,7 +178,12 @@ EOF
     [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP # Router Gateway" >> "$IP_LIST_FILE"
 fi
 
-# --- 4. CORE SCRIPT GENERATION ---
+# --- 4. CREATE INITIAL HUMAN-READABLE LOG ---
+# Create the file before the core script runs to ensure the 'logs' command works immediately
+NOW_LOG=$(date '+%b %d, %Y %H:%M:%S')
+echo "$NOW_LOG - [SYSTEM] netwatchda installation successful. Service is ready to monitor." > "$LOGFILE"
+
+# --- 5. CORE SCRIPT GENERATION ---
 echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
 cat <<'EOF' > "$INSTALL_DIR/netwatchda.sh"
 #!/bin/sh
@@ -194,7 +200,7 @@ LAST_HB_CHECK=$(date +%s)
 
 # Initialize Log File
 NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
-echo "$NOW_HUMAN - [SYSTEM] netwatchda service started." > "$LOGFILE"
+echo "$NOW_HUMAN - [SYSTEM] netwatchda service started." >> "$LOGFILE"
 
 while true; do
     [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
@@ -269,7 +275,7 @@ while true; do
 done
 EOF
 
-# --- 5. ENHANCED SERVICE SETUP ---
+# --- 6. ENHANCED SERVICE SETUP ---
 chmod +x "$INSTALL_DIR/netwatchda.sh"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
@@ -320,7 +326,7 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart
 echo -e "${GREEN}✅ Service configured and started.${NC}"
 
-# --- 6. SUCCESS NOTIFICATION ---
+# --- 7. SUCCESS NOTIFICATION ---
 . "$CONFIG_FILE"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
