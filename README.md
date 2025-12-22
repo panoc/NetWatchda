@@ -170,10 +170,12 @@ To view logs without using a terminal:
    Go to System > Custom Commands.
 
    Click Add.
-
+```sh
         Name: View NetWatch Logs
-
+```
+```sh
         Command: tail -n 50 /tmp/netwatchda_log.txt
+```
 
   You can now check your monitoring history with one click from your browser.
 
