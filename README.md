@@ -24,7 +24,15 @@ Designed for easy installation, reliability, minimal resource usage, and zero bl
 ---
 
 ## 🚀 Installation
+**At least 3MB free storage space.**
+The script itself is tiny (only a few KB), but it relies on curl to communicate with Discord. In OpenWrt, installing curl is a multi-step process that requires several libraries:
 
+- curl binary: The core tool.
+- libcurl: The logic library.
+- ca-bundle / ca-certificates: These are essential for "HTTPS" security. Without them, your router cannot verify Discord’s identity, and the connection will fail.
+- mbedtls or openssl: The encryption engine.
+
+Combined, these packages require approximately 1.5MB to 2.2MB of permanent space. We set the guard at 3MB to allow room for the opkg package manager to download temporary files during installation without hitting 100% utilization.
 Run the following command in your OpenWrt router’s terminal.  
 The installer is interactive and will guide you through setup.
 
