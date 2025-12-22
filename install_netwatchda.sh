@@ -4,6 +4,7 @@
 # Licensed under the GNU General Public License v3.0
 
 # --- SELF-CLEAN LOGIC ---
+# This ensures the installer script deletes itself after execution
 SCRIPT_NAME="$0"
 cleanup() {
     rm -f "$SCRIPT_NAME"
@@ -30,7 +31,7 @@ echo ""
 # --- 0. PRE-INSTALLATION CONFIRMATION ---
 printf "${BOLD}❓ This will begin the installation process. Continue? [y/n]: ${NC}"
 read start_confirm </dev/tty
-if [ "$start_confirm" != "y" ] && [ "$start_confirm" != "Y" ]; then
+if [ "$start_confirm" != "y" ] && [ "$confirm_test" != "Y" ]; then
     echo -e "${RED}❌ Installation aborted by user. Cleaning up...${NC}"
     exit 0
 fi
@@ -144,7 +145,10 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     
     printf "${BOLD}❓ Received basic notification on Discord? [y/n]: ${NC}"
     read confirm_test </dev/tty
-    [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ] && echo -e "${RED}❌ Aborted.${NC}" && exit 1
+    if [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ]; then
+        echo -e "${RED}❌ Aborted. Check your Webhook URL.${NC}"
+        exit 1
+    fi
 
     echo -e "\n${BLUE}--- Heartbeat Settings ---${NC}"
     printf "${BOLD}💓 Enable Heartbeat (System check-in)? [y/n]: ${NC}"
@@ -235,7 +239,10 @@ LAST_EXT_CHECK=0
 LAST_HB_CHECK=$(date +%s)
 
 while true; do
-    [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+    # FIX: Filter out [INI Headers] before sourcing to avoid shell errors
+    if [ -f "$CONFIG_FILE" ]; then
+        eval "$(grep -v '^\[.*\]' "$CONFIG_FILE")"
+    fi
     
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
     NOW_SEC=$(date +%s)
@@ -341,7 +348,7 @@ clear() {
 
 discord() {
     if [ -f "$CONFIG_FILE" ]; then
-        . "$CONFIG_FILE"
+        eval "\$(grep -v '^\[.*\]' "$CONFIG_FILE")"
         curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Test Notification\", \"description\": \"**Router:** \$ROUTER_NAME\nManual test triggered from CLI.\", \"color\": 3447003}]}" "\$DISCORD_URL"
         echo "Test message sent."
     fi
@@ -353,7 +360,8 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart
 
 # --- 7. SUCCESS NOTIFICATION ---
-. "$CONFIG_FILE"
+# Filter headers for the installer's final notification
+eval "$(grep -v '^\[.*\]' "$CONFIG_FILE")"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
 
