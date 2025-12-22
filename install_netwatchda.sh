@@ -4,7 +4,6 @@
 # Licensed under the GNU General Public License v3.0
 
 # --- SELF-CLEAN LOGIC ---
-# Ensures the script file is deleted on Finish, Abort (y/n), or Ctrl+C
 SCRIPT_NAME="$0"
 cleanup() {
     rm -f "$SCRIPT_NAME"
@@ -12,7 +11,7 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-# --- COLOR DEFINITIONS (VIBRANT & HIGH CONTRAST) ---
+# --- COLOR DEFINITIONS ---
 NC='\033[0m'       
 BOLD='\033[1m'
 RED='\033[1;31m'    # Light Red
@@ -22,7 +21,6 @@ CYAN='\033[1;36m'   # Light Cyan (Vibrant)
 YELLOW='\033[1;33m' # Bold Yellow
 
 # --- INITIAL HEADER ---
-     
 echo -e "${BLUE}=======================================================${NC}"
 echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} (by ${BOLD}panoc${NC})"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
@@ -44,30 +42,26 @@ SERVICE_NAME="netwatchda"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
 LOGFILE="/tmp/netwatchda_log.txt"
 
-# --- 1. CHECK DEPENDENCIES & STORAGE ---
+# --- 1. CHECK DEPENDENCIES & STORAGE (FLASH & RAM) ---
 echo -e "\n${BOLD}📦 Checking system readiness...${NC}"
 
-# Storage Check Logic
-FREE_KB=$(df / | awk 'NR==2 {print $4}')
-MIN_KB=3072 # 3MB Threshold
+# Flash Storage Check (Root partition)
+FREE_FLASH_KB=$(df / | awk 'NR==2 {print $4}')
+MIN_FLASH_KB=3072 # 3MB Threshold
 
-	
+# RAM Check (/tmp partition)
+FREE_RAM_KB=$(df /tmp | awk 'NR==2 {print $4}')
+MIN_RAM_KB=512 # 512KB Threshold
+DEFAULT_MAX_LOG=512000 # Default 512KB
+
 if ! command -v curl >/dev/null 2>&1; then
-    echo -e "${CYAN}🔍 curl not found. Checking available storage for installation...${NC}"
-    
-    if [ "$FREE_KB" -lt "$MIN_KB" ]; then
-        echo -e "${RED}❌ ERROR: Insufficient storage!${NC}"
-        echo -e "${YELLOW}Available: $((FREE_KB / 1024))MB | Required: 3MB${NC}"
-        echo -e "Aborting to prevent system instability."
-		 
-				 
-				   
-											  
-						 
-																		 
+    echo -e "${CYAN}🔍 curl not found. Checking flash storage...${NC}"
+    if [ "$FREE_FLASH_KB" -lt "$MIN_FLASH_KB" ]; then
+        echo -e "${RED}❌ ERROR: Insufficient Flash storage!${NC}"
+        echo -e "${YELLOW}Available: $((FREE_FLASH_KB / 1024))MB | Required: 3MB${NC}"
         exit 1
     else
-        echo -e "${GREEN}✅ Sufficient space found ($((FREE_KB / 1024))MB).${NC}"
+        echo -e "${GREEN}✅ Sufficient Flash space found ($((FREE_FLASH_KB / 1024))MB).${NC}"
         echo -e "${YELLOW}📥 Attempting to install curl and ca-bundle...${NC}"
         opkg update && opkg install curl ca-bundle
         if [ $? -ne 0 ]; then
@@ -76,9 +70,17 @@ if ! command -v curl >/dev/null 2>&1; then
         fi
     fi
 else
-    echo -e "${GREEN}✅ curl is already installed.${NC}"
+    echo -e "${GREEN}✅ curl is ready.${NC}"
 fi
-										 
+
+# Determine Log size based on RAM availability
+if [ "$FREE_RAM_KB" -lt "$MIN_RAM_KB" ]; then
+    echo -e "${YELLOW}⚠️  Low RAM detected in /tmp ($FREE_RAM_KB KB).${NC}"
+    echo -e "${CYAN}📉 Scaling down log rotation size to 64KB for system stability.${NC}"
+    DEFAULT_MAX_LOG=65536 # 64KB
+else
+    echo -e "${GREEN}✅ Sufficient RAM for standard logging ($FREE_RAM_KB KB).${NC}"
+fi
 
 # --- 2. SMART UPGRADE / INSTALL CHECK ---
 KEEP_CONFIG=0
@@ -102,7 +104,7 @@ if [ -f "$CONFIG_FILE" ]; then
         add_if_missing "ROUTER_NAME" "\"My_OpenWrt_Router\"" "# Router ID for Discord"
         add_if_missing "SCAN_INTERVAL" "10" "# Seconds between pings"
         add_if_missing "FAIL_THRESHOLD" "3" "# Retries before alert"
-        add_if_missing "MAX_SIZE" "512000" "# Log rotation size in bytes"
+        add_if_missing "MAX_SIZE" "$DEFAULT_MAX_LOG" "# Log rotation size in bytes"
         add_if_missing "HEARTBEAT" "\"OFF\"" "# Daily check-in toggle"
         add_if_missing "HB_INTERVAL" "86400" "# Heartbeat frequency in seconds"
         add_if_missing "HB_MENTION" "\"OFF\"" "# Heartbeat tagging toggle"
@@ -179,7 +181,7 @@ MY_ID="$user_id" # Your Discord User ID (for @mentions).
 # Monitoring Settings
 SCAN_INTERVAL=10 # Seconds between pings. Default is 10.
 FAIL_THRESHOLD=3 # Number of failed pings before sending an alert. Default is 3.
-MAX_SIZE=512000 # Max log file size in bytes for the log rotation. Default 512KB.
+MAX_SIZE=$DEFAULT_MAX_LOG # Max log file size in bytes for the log rotation.
 
 # Heartbeat Settings
 HEARTBEAT="$HB_VAL" # Set to ON to receive a periodic check-in message.
@@ -204,9 +206,8 @@ EOF
 fi
 
 # --- 4. CREATE INITIAL HUMAN-READABLE LOG ---
-																							
 NOW_LOG=$(date '+%b %d, %Y %H:%M:%S')
-echo "$NOW_LOG - [SYSTEM] netwatchda installation successful. Service is ready to monitor." > "$LOGFILE"
+echo "$NOW_LOG - [SYSTEM] netwatchda installation successful. RAM Guard set log limit to $DEFAULT_MAX_LOG bytes." > "$LOGFILE"
 
 # --- 5. CORE SCRIPT GENERATION ---
 echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
