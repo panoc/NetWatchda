@@ -265,7 +265,7 @@ echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
 cat <<'EOF' > "$INSTALL_DIR/netwatchda.sh"
 #!/bin/sh
 # netwatchda - Network Monitoring for OpenWrt
-# Fixed: Logging visibility and strict IP parsing
+# Fixed: Logging, strict IP parsing, recovery timestamps, and descriptive naming
 
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 IP_LIST_FILE="$BASE_DIR/netwatchda_ips.conf"
@@ -287,7 +287,7 @@ load_config() {
 while true; do
     load_config
     
-    NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
+    NOW_HUMAN=$(date '+%b %d %H:%M:%S')
     NOW_SEC=$(date +%s)
     CUR_HOUR=$(date +%H)
 
@@ -316,18 +316,31 @@ while true; do
         if ! ping -q -c "$EXT_PING_COUNT" -W 2 "$EXT_IP" > /dev/null 2>&1; then
             C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
             if [ "$C" -ge "$EXT_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
-                echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
-                echo "$NOW_HUMAN - [ALERT] INTERNET DOWN" >> "$LOGFILE"
-                [ "$IS_SILENT" -eq 1 ] && echo "🌐 Internet Outage: $NOW_HUMAN" >> "$SILENT_BUFFER"
+                echo "$NOW_SEC" > "$FD"
+                echo "$NOW_HUMAN" > "$FT"
+                echo "$NOW_HUMAN - [ALERT] [$ROUTER_NAME] INTERNET DOWN" >> "$LOGFILE"
+                
+                # Immediate Alert if not silent
+                if [ "$IS_SILENT" -eq 0 ]; then
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🔴 Internet Down\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_HUMAN\", \"color\": 15158332}]}" "$DISCORD_URL" > /dev/null 2>&1
+                else
+                    echo "🌐 Internet Outage: $NOW_HUMAN" >> "$SILENT_BUFFER"
+                fi
             fi
         else
             if [ -f "$FD" ]; then
-                S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
-                echo "$NOW_HUMAN - [SUCCESS] INTERNET RESTORED (Down $DR)" >> "$LOGFILE"
+                START_TIME=$(cat "$FT")
+                START_SEC=$(cat "$FD")
+                DURATION_SEC=$((NOW_SEC - START_SEC))
+                DR="$((DURATION_SEC/60))m $((DURATION_SEC%60))s"
+                
+                MSG="🌐 **Internet Restored**\n**Router:** $ROUTER_NAME\n**Down at:** $START_TIME\n**Up at:** $NOW_HUMAN\n**Total Outage:** $DR"
+                echo "$NOW_HUMAN - [SUCCESS] [$ROUTER_NAME] INTERNET UP (Down $DR)" >> "$LOGFILE"
+                
                 if [ "$IS_SILENT" -eq 0 ]; then
-                    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🌐 Internet Restored\", \"description\": \"**Outage:** $DR\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null 2>&1
+                    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"Connectivity Restored\", \"description\": \"$MSG\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null 2>&1
                 else
-                    echo "🌐 Internet Up: $NOW_HUMAN (Down $DR)" >> "$SILENT_BUFFER"
+                    echo -e "$MSG" >> "$SILENT_BUFFER"
                 fi
                 rm -f "$FD" "$FT"
             fi
@@ -340,7 +353,7 @@ while true; do
         LAST_DEV_CHECK=$NOW_SEC
         sed -e 's/#.*//' -e '/^$/d' "$IP_LIST_FILE" | while read -r line; do
             TIP=$(echo "$line" | awk '{print $1}')
-            NAME=$(echo "$line" | awk '{print $2}')
+            NAME=$(echo "$line" | awk '{$1=""; print $0}' | sed 's/^[ \t]*//')
             [ -z "$NAME" ] && NAME="$TIP"
             [ -z "$TIP" ] && continue
             
@@ -349,12 +362,15 @@ while true; do
             
             if ping -q -c "$DEV_PING_COUNT" -W 2 "$TIP" > /dev/null 2>&1; then
                 if [ -f "$FD" ]; then
-                    S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
-                    echo "$NOW_HUMAN - [SUCCESS] $NAME ONLINE (Down $DR)" >> "$LOGFILE"
+                    DSTART=$(cat "$FT"); DSSEC=$(cat "$FD"); DUR=$((NOW_SEC-DSSEC))
+                    DR_STR="$((DUR/60))m $((DUR%60))s"
+                    D_MSG="✅ **$NAME Online**\n**Router:** $ROUTER_NAME\n**Down at:** $DSTART\n**Up at:** $NOW_HUMAN\n**Outage:** $DR_STR"
+                    echo "$NOW_HUMAN - [SUCCESS] [$ROUTER_NAME] $NAME ONLINE ($DR_STR)" >> "$LOGFILE"
+                    
                     if [ "$IS_SILENT" -eq 0 ]; then
-                        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"✅ Device Online\", \"description\": \"**$NAME** back online ($DR)\", \"color\": 3066993}]}" "$DISCORD_URL" > /dev/null 2>&1
+                        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$D_MSG\", \"color\": 3066993}]}" "$DISCORD_URL" > /dev/null 2>&1
                     else
-                        echo "✅ $NAME Up: $NOW_HUMAN (Down $DR)" >> "$SILENT_BUFFER"
+                        echo -e "$D_MSG" >> "$SILENT_BUFFER"
                     fi
                     rm -f "$FD" "$FT"
                 fi
@@ -363,11 +379,11 @@ while true; do
                 C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
                 if [ "$C" -ge "$DEV_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
                     echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
-                    echo "$NOW_HUMAN - [ALERT] $NAME DOWN" >> "$LOGFILE"
+                    echo "$NOW_HUMAN - [ALERT] [$ROUTER_NAME] $NAME DOWN" >> "$LOGFILE"
                     if [ "$IS_SILENT" -eq 0 ]; then
-                        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🔴 Device Down\", \"description\": \"**$NAME** ($TIP) is unreachable.\", \"color\": 15158332}]}" "$DISCORD_URL" > /dev/null 2>&1
+                        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🔴 Device Down\", \"description\": \"**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Time:** $NOW_HUMAN\", \"color\": 15158332}]}" "$DISCORD_URL" > /dev/null 2>&1
                     else
-                        echo "🔴 $NAME Down: $NOW_HUMAN" >> "$SILENT_BUFFER"
+                        echo -e "🔴 $NAME Down: $NOW_HUMAN" >> "$SILENT_BUFFER"
                     fi
                 fi
             fi
@@ -376,7 +392,7 @@ while true; do
 
     # Log Rotation Check
     if [ $(wc -c < "$LOGFILE") -gt "$MAX_SIZE" ]; then
-        echo "$NOW_HUMAN - [SYSTEM] Log rotated." > "$LOGFILE"
+        echo "$(date '+%b %d %H:%M:%S') - [SYSTEM] Log rotated." > "$LOGFILE"
     fi
 
     sleep 1
@@ -411,7 +427,7 @@ logs() {
 }
 
 clear() {
-    echo "\$(date '+%b %d, %Y %H:%M:%S') - [SYSTEM] Log cleared." > "/tmp/netwatchda_log.txt"
+    echo "\$(date '+%b %d %H:%M:%S') - [SYSTEM] Log cleared." > "/tmp/netwatchda_log.txt"
     echo "Log file cleared."
 }
 
