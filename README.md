@@ -156,13 +156,13 @@ Usage: /etc/init.d/netwatchda [command]
 - enable          Enable service autostart
 - disable         Disable service autostart
 - discord         Test discord notification
+- clear           Clear log file
 - enabled         Check if service is started on boot
 - status          Check if monitor is running
 - logs            View last 20 log entries
 - running         Check if service is running
 - trace           Start with syscall trace
 - info            Dump procd service info
-- clear           Clear log file
 - help			      Display this help message
 
 ## 🤝 Contributing
