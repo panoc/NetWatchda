@@ -148,7 +148,6 @@ Restart the service after making changes:
 ```sh
 /etc/init.d/netwatchda restart
 ``
-
 ---
 
 ## 🖥️ LuCI Web Interface Integration (Recommended)
