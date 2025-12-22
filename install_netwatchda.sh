@@ -173,7 +173,8 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     
     # --- TEST NOTIFICATION ---
     echo -e "\n${CYAN}🧪 Sending initial test notification...${NC}"
-    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"📟 Router Setup\", \"description\": \"Basic connectivity test successful for **$router_name_input**! <@$user_id>\", \"color\": 3447003}]}" "$user_webhook" > /dev/null
+    # Info Notification -> Cyan color - decimal 1752220
+    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"📟 Router Setup\", \"description\": \"Basic connectivity test successful for **$router_name_input**! <@$user_id>\", \"color\": 1752220}]}" "$user_webhook" > /dev/null
     
     printf "${BOLD}❓ Received basic notification on Discord? [y/n]: ${NC}"
     read confirm_test </dev/tty
@@ -265,7 +266,7 @@ echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
 cat <<'EOF' > "$INSTALL_DIR/netwatchda.sh"
 #!/bin/sh
 # netwatchda - Network Monitoring for OpenWrt
-# Fixed: Custom Discord Colors (Red, Green, Yellow, Blue, Purple) and @ Delimiter
+# Colors: Red (Critical), Green (Success), Yellow (Warning), Cyan (Info), Purple (Summary)
 
 BASE_DIR=$(cd "$(dirname "$0")" && pwd)
 IP_LIST_FILE="$BASE_DIR/netwatchda_ips.conf"
@@ -296,8 +297,8 @@ while true; do
         LAST_HB_CHECK=$NOW_SEC
         HB_MSG="💓 **Heartbeat Report**\n**Router:** $ROUTER_NAME\n**Status:** Systems Operational\n**Time:** $NOW_HUMAN"
         [ "$HB_MENTION" = "ON" ] && HB_MSG="$HB_MSG\n<@$MY_ID>"
-        # Neutra - system - Blue color - decimal 3447003
-        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"System Healthy\", \"description\": \"$HB_MSG\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null 2>&1
+        # Info Notification -> Cyan color - decimal 1752220
+        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"System Healthy\", \"description\": \"$HB_MSG\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null 2>&1
         echo "$NOW_HUMAN - [SYSTEM] [$ROUTER_NAME] Heartbeat sent." >> "$LOGFILE"
     fi
 
@@ -448,9 +449,9 @@ clear() {
 discord() {
     if [ -f "$CONFIG_FILE" ]; then
         eval "\$(sed '/^\[.*\]/d' "$CONFIG_FILE")"
-        # Warning / Info -> Yellow color - decimal 15859727
-        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Test Notification\", \"description\": \"**Router:** \$ROUTER_NAME\nManual test triggered from CLI.\", \"color\": 15859727}]}" "\$DISCORD_URL"
-        echo "Test message sent."
+        # Warning Notification -> Yellow color - decimal 15859727
+        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered from CLI.\", \"color\": 15859727}]}" "\$DISCORD_URL"
+        echo "Warning test message (Yellow) sent."
     fi
 }
 EOF
@@ -462,13 +463,13 @@ chmod +x "$SERVICE_PATH"
 # --- 7. SUCCESS NOTIFICATION ---
 eval "$(sed '/^\[.*\]/d' "$CONFIG_FILE")"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
-# Neutra - system - Blue color - decimal 3447003
-curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
+# Info Notification -> Cyan color - decimal 1752220
+curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null
 
 # --- FINAL OUTPUT ---
 echo ""
 echo -e "${GREEN}=======================================================${NC}"
-echo -e "${BOLD}${GREEN}✅ Installation complete! Color codes updated.${NC}"
+echo -e "${BOLD}${GREEN}✅ Installation complete! Warning (Yellow) & Info (Cyan) split.${NC}"
 echo -e "${CYAN}📂 Folder:${NC} $INSTALL_DIR"
 echo -e "${GREEN}=======================================================${NC}"
 echo -e "\n${BOLD}Next Steps:${NC}"
