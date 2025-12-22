@@ -118,6 +118,8 @@ if [ -f "$CONFIG_FILE" ]; then
         add_if_missing "DEV_PING_COUNT" "4" "# Number of pings per device check interval. Default 4."
         add_if_missing "DEV_SCAN_INTERVAL" "10" "# Seconds between device pings. Default is 10."
         add_if_missing "DEV_FAIL_THRESHOLD" "3" "# Failed cycles before alert. Default 3."
+        add_if_missing "SILENT_START" "23" "# Hour to start silent mode (0-23)."
+        add_if_missing "SILENT_END" "07" "# Hour to end silent mode (0-23)."
 
         echo -e "${GREEN}✅ Configuration patch complete.${NC}"
         KEEP_CONFIG=1
@@ -139,6 +141,30 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     read user_id </dev/tty
     printf "${BOLD}🏷️  Enter Router Name (e.g., MyRouter): ${NC}"
     read router_name_input </dev/tty
+
+    echo -e "\n${BLUE}--- Silent Hours (No Discord Alerts) ---${NC}"
+    
+    # Validation Loop for Silent Start
+    while :; do
+        printf "${BOLD}🌙 Start Hour (0-23, e.g., 23 for 11PM): ${NC}"
+        read user_silent_start </dev/tty
+        if echo "$user_silent_start" | grep -qE '^[0-9]+$' && [ "$user_silent_start" -ge 0 ] && [ "$user_silent_start" -le 23 ] 2>/dev/null; then
+            break
+        else
+            echo -e "${RED}❌ Invalid input. Please enter a number between 0 and 23.${NC}"
+        fi
+    done
+
+    # Validation Loop for Silent End
+    while :; do
+        printf "${BOLD}☀️  End Hour (0-23, e.g., 07 for 7AM): ${NC}"
+        read user_silent_end </dev/tty
+        if echo "$user_silent_end" | grep -qE '^[0-9]+$' && [ "$user_silent_end" -ge 0 ] && [ "$user_silent_end" -le 23 ] 2>/dev/null; then
+            break
+        else
+            echo -e "${RED}❌ Invalid input. Please enter a number between 0 and 23.${NC}"
+        fi
+    done
     
     # --- TEST NOTIFICATION ---
     echo -e "\n${CYAN}🧪 Sending initial test notification...${NC}"
@@ -191,6 +217,8 @@ ROUTER_NAME="$router_name_input" # Name that appears in Discord notifications.
 [Discord Settings]
 DISCORD_URL="$user_webhook" # Your Discord Webhook URL.
 MY_ID="$user_id" # Your Discord User ID (for @mentions).
+SILENT_START=$user_silent_start # Hour to start silent mode (0-23).
+SILENT_END=$user_silent_end # Hour to end silent mode (0-23).
 
 [Monitoring Settings]
 MAX_SIZE=$DEFAULT_MAX_LOG # Max log file size in bytes for the log rotation.
@@ -241,14 +269,25 @@ LAST_EXT_CHECK=0
 LAST_DEV_CHECK=0
 LAST_HB_CHECK=$(date +%s)
 
+# Load config helper
+load_config() {
+    [ -f "$CONFIG_FILE" ] && eval "$(sed '/^\[.*\]/d' "$CONFIG_FILE")"
+}
+
 while true; do
-    # FIX: Filter out [INI Headers] before sourcing to avoid shell errors
-    if [ -f "$CONFIG_FILE" ]; then
-        eval "$(grep -v '^\[.*\]' "$CONFIG_FILE")"
-    fi
+    load_config
     
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
     NOW_SEC=$(date +%s)
+    CUR_HOUR=$(date +%H)
+
+    # Silent Mode Logic
+    IS_SILENT=0
+    if [ "$SILENT_START" -le "$SILENT_END" ]; then
+        if [ "$CUR_HOUR" -ge "$SILENT_START" ] && [ "$CUR_HOUR" -lt "$SILENT_END" ]; then IS_SILENT=1; fi
+    else
+        if [ "$CUR_HOUR" -ge "$SILENT_START" ] || [ "$CUR_HOUR" -lt "$SILENT_END" ]; then IS_SILENT=1; fi
+    fi
 
     # Log Rotation Check
     if [ -f "$LOGFILE" ] && [ $(wc -c < "$LOGFILE") -gt "$MAX_SIZE" ]; then
@@ -265,7 +304,7 @@ while true; do
         HB_MSG="$NOW_HUMAN | $ROUTER_NAME | Router Online"
         DESC="💓 **Heartbeat**: $HB_MSG"
         [ "$HB_MENTION" = "ON" ] && DESC="$DESC$MENTION"
-        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$DESC\", \"color\": 15844367}]}" "$DISCORD_URL" > /dev/null 2>&1
+        [ "$IS_SILENT" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$DESC\", \"color\": 15844367}]}" "$DISCORD_URL" > /dev/null 2>&1
     fi
 
     # Internet Check Logic
@@ -282,7 +321,7 @@ while true; do
             if [ -f "$FD" ]; then
                 S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
                 echo "$NOW_HUMAN - [SUCCESS] INTERNET UP (Down for $DR)" >> "$LOGFILE"
-                curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🌐 Internet Restored\", \"description\": \"$PREFIX❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Outage:** $DR$MENTION\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null 2>&1
+                [ "$IS_SILENT" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🌐 Internet Restored\", \"description\": \"$PREFIX❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Outage:** $DR$MENTION\", \"color\": 1752220}]}" "$DISCORD_URL" > /dev/null 2>&1
                 rm -f "$FD" "$FT"
             fi
             echo 0 > "$FC"
@@ -302,7 +341,7 @@ while true; do
                 if [ -f "$FD" ]; then
                     S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
                     echo "$NOW_HUMAN - [SUCCESS] DEVICE UP: $NAME ($TIP) - Down for $DR" >> "$LOGFILE"
-                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"✅ Device ONLINE\", \"description\": \"$PREFIX**$NAME** back online.\n❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Down for:** $DR$MENTION\", \"color\": 3066993}]}" "$DISCORD_URL" > /dev/null 2>&1
+                    [ "$IS_INT_DOWN" -eq 0 ] && [ "$IS_SILENT" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"✅ Device ONLINE\", \"description\": \"$PREFIX**$NAME** back online.\n❌ **Lost:** $T\n✅ **Restored:** $NOW_HUMAN\n**Down for:** $DR$MENTION\", \"color\": 3066993}]}" "$DISCORD_URL" > /dev/null 2>&1
                     rm -f "$FD" "$FT"
                 fi
                 echo 0 > "$FC"
@@ -311,7 +350,7 @@ while true; do
                 if [ "$C" -ge "$DEV_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
                     echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
                     echo "$NOW_HUMAN - [ALERT] DEVICE DOWN: $NAME ($TIP)" >> "$LOGFILE"
-                    [ "$IS_INT_DOWN" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🔴 Device DOWN!\", \"description\": \"$PREFIX**$NAME** ($TIP) unreachable.\n**Time:** $NOW_HUMAN$MENTION\", \"color\": 15158332}]}" "$DISCORD_URL" > /dev/null 2>&1
+                    [ "$IS_INT_DOWN" -eq 0 ] && [ "$IS_SILENT" -eq 0 ] && curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🔴 Device DOWN!\", \"description\": \"$PREFIX**$NAME** ($TIP) unreachable.\n**Time:** $NOW_HUMAN$MENTION\", \"color\": 15158332}]}" "$DISCORD_URL" > /dev/null 2>&1
                 fi
             fi
         done < "$IP_LIST_FILE"
@@ -354,7 +393,7 @@ clear() {
 
 discord() {
     if [ -f "$CONFIG_FILE" ]; then
-        eval "\$(grep -v '^\[.*\]' "$CONFIG_FILE")"
+        eval "\$(sed '/^\[.*\]/d' "$CONFIG_FILE")"
         curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Test Notification\", \"description\": \"**Router:** \$ROUTER_NAME\nManual test triggered from CLI.\", \"color\": 3447003}]}" "\$DISCORD_URL"
         echo "Test message sent."
     fi
@@ -366,8 +405,7 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart
 
 # --- 7. SUCCESS NOTIFICATION ---
-# Filter headers for the installer's final notification
-eval "$(grep -v '^\[.*\]' "$CONFIG_FILE")"
+eval "$(sed '/^\[.*\]/d' "$CONFIG_FILE")"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
 
