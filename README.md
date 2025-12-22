@@ -68,10 +68,35 @@ All configuration files are located in:
 Adjust scan intervals, failure thresholds, and logging behavior.
 
 ```sh
-ROUTER_NAME="Home_Router"
-SCAN_INTERVAL=10    # Ping every 10 seconds
-FAIL_THRESHOLD=3    # Alert after 3 consecutive failures
-```
+[Router Identification]
+ROUTER_NAME="My_OpenWrt_Router" # Name that appears in Discord notifications.
+
+[Discord Settings]
+DISCORD_URL="" # Your Discord Webhook URL.
+MY_ID="" # Your Discord User ID (for @mentions).
+SILENT_ENABLE="OFF" # Set to ON to enable silent hours mode.
+SILENT_START=23 # Hour to start silent mode (24H Format 0-23).
+SILENT_END=07 # Hour to end silent mode (24H Format 0-23).
+
+[Monitoring Settings]
+MAX_SIZE=512000 # Max log file size in bytes for the log rotation.
+
+[Heartbeat Settings]
+HEARTBEAT="OFF" # Set to ON to receive a periodic check-in message.
+HB_INTERVAL=86400 # Interval in seconds. Default is 86400
+HB_MENTION="OFF" # Set to ON to include @mention in heartbeats.
+
+[Internet Connectivity]
+EXT_IP="1.1.1.1" # External IP to ping. Leave empty to disable.
+EXT_SCAN_INTERVAL=60 # Seconds between internet checks. Default is 60.
+EXT_FAIL_THRESHOLD=1 # Number of failed checks before alert. Default 1.
+EXT_PING_COUNT=4 # Number of pings per check. Default 4.
+
+[Local Device Monitoring]
+DEVICE_MONITOR="ON" # Set to ON to enable local IP monitoring.
+DEV_SCAN_INTERVAL=10 # Seconds between device pings. Default is 10.
+DEV_FAIL_THRESHOLD=3 # Number of failed cycles before alert. Default 3.
+DEV_PING_COUNT=4 # Number of pings per check. Default 4.```
 
 ---
 
@@ -82,9 +107,8 @@ Define LAN devices to monitor.
 ```txt
 # Format:
 # IP_ADDRESS  # DEVICE NAME
-
-192.168.1.50  # NAS Server
-192.168.1.10  # Smart Home Hub
+192.168.1.50  @ NAS Server
+192.168.1.10  @ Smart Home Hub
 ```
 
 Restart the service after making changes:
