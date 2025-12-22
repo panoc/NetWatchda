@@ -102,9 +102,19 @@ if [ -f "$CONFIG_FILE" ]; then
             fi
         }
 
+                                                                    
         add_if_missing "ROUTER_NAME" "\"My_OpenWrt_Router\"" "# Name that appears in Discord notifications."
         add_if_missing "DISCORD_URL" "\"\"" "# Your Discord Webhook URL."
         add_if_missing "MY_ID" "\"\"" "# Your Discord User ID (for @mentions)."
+                                                                                                    
+                                                                                                    
+                                                                                                    
+                                                                                
+                                                                                
+                                                                      
+                                                                                                    
+                                                                                
+                                                                                
         add_if_missing "SCAN_INTERVAL" "10" "# Seconds between pings. Default is 10."
         add_if_missing "FAIL_THRESHOLD" "3" "# Number of failed pings before sending an alert. Default is 3."
         add_if_missing "MAX_SIZE" "$DEFAULT_MAX_LOG" "# Max log file size in bytes for the log rotation."
@@ -175,6 +185,11 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         *) EXT_VAL="1.1.1.1"; DEV_VAL="ON"  ;;
     esac
 
+# --- BASE CODE (DO NOT CHANGE) ---
+DEV_COUNT=5 # Number of pings to send to devices
+EXT_COUNT=3 # Number of pings to send to external sites
+# --- END BASE CODE ---
+
     cat <<EOF > "$CONFIG_FILE"
 # Router Identification
 ROUTER_NAME="$router_name_input" # Name that appears in Discord notifications.
@@ -193,11 +208,11 @@ HEARTBEAT="$HB_VAL" # Set to ON to receive a periodic check-in message.
 HB_INTERVAL=$HB_SEC # Interval in seconds. Default is 86400
 HB_MENTION="$HB_MENTION" # Set to ON to include @mention in heartbeats.
 
-# Connectivity Request Counts
-EXT_COUNT=4 # Number of pings per internet check interval. Default 4.
-DEV_COUNT=4 # Number of pings per device check interval. Default 4.
+[devices]
+DEV_PING_COUNT=$DEV_COUNT # Mapping of DEV_COUNT
 
-# Internet Connectivity Check
+[Internet Connectivity]
+EXT_PING_COUNT=$EXT_COUNT # Mapping of EXT_COUNT
 EXT_IP="$EXT_VAL" # External IP to ping. Leave empty to disable.
 EXT_INTERVAL=60 # Seconds between internet checks. Default is 60.
 
@@ -239,6 +254,7 @@ echo "$NOW_HUMAN - [SYSTEM] netwatchda service started." >> "$LOGFILE"
 
 while true; do
     [ -f "$CONFIG_FILE" ] && . "$CONFIG_FILE"
+                                                                    
     
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
     NOW_SEC=$(date +%s)
@@ -261,11 +277,11 @@ while true; do
         curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$DESC\", \"color\": 15844367}]}" "$DISCORD_URL" > /dev/null 2>&1
     fi
 
-    # Internet Check Logic (Uses EXT_COUNT)
+    # Internet Check Logic (Uses EXT_PING_COUNT)
     if [ -n "$EXT_IP" ] && [ $((NOW_SEC - LAST_EXT_CHECK)) -ge "$EXT_INTERVAL" ]; then
         LAST_EXT_CHECK=$NOW_SEC
         FD="/tmp/nwda_ext_d"; FT="/tmp/nwda_ext_t"
-        if ! ping -q -c "$EXT_COUNT" -W 2 "$EXT_IP" > /dev/null 2>&1; then
+        if ! ping -q -c "$EXT_PING_COUNT" -W 2 "$EXT_IP" > /dev/null 2>&1; then
             if [ ! -f "$FD" ]; then
                 echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
                 echo "$NOW_HUMAN - [ALERT] INTERNET DOWN" >> "$LOGFILE"
@@ -281,14 +297,14 @@ while true; do
     fi
     [ -f "/tmp/nwda_ext_d" ] && IS_INT_DOWN=1
 
-    # Local Device Check Logic (Uses DEV_COUNT)
+    # Local Device Check Logic (Uses DEV_PING_COUNT)
     if [ "$DEVICE_MONITOR" = "ON" ]; then
         while IFS= read -r line || [ -n "$line" ]; do
             case "$line" in ""|\#*) continue ;; esac
             TIP=$(echo "$line" | cut -d'#' -f1 | xargs); NAME=$(echo "$line" | cut -s -d'#' -f2- | xargs)
             [ -z "$NAME" ] && NAME="Unknown"
             SIP=$(echo "$TIP" | tr '.' '_'); FC="/tmp/nwda_c_$SIP"; FD="/tmp/nwda_d_$SIP"; FT="/tmp/nwda_t_$SIP"
-            if ping -q -c "$DEV_COUNT" -W 2 "$TIP" > /dev/null 2>&1; then
+            if ping -q -c "$DEV_PING_COUNT" -W 2 "$TIP" > /dev/null 2>&1; then
                 if [ -f "$FD" ]; then
                     S=$(cat "$FD"); T=$(cat "$FT"); D=$((NOW_SEC-S)); DR="$(($D/60))m $(($D%60))s"
                     echo "$NOW_HUMAN - [SUCCESS] DEVICE UP: $NAME ($TIP) - Down for $DR" >> "$LOGFILE"
@@ -380,8 +396,11 @@ echo -e "${GREEN}=======================================================${NC}"
 echo -e "${BOLD}${GREEN}✅ Installation complete! Script file deleted.${NC}"
 echo -e "${CYAN}📂 Folder:${NC} $INSTALL_DIR"
 echo -e "${GREEN}=======================================================${NC}"
-echo -e "\n${BOLD}Commands:${NC}"
-echo -e "Clear Logs:    ${BOLD}/etc/init.d/netwatchda clear${NC}"
-echo -e "View Logs:     ${BOLD}/etc/init.d/netwatchda logs${NC}"
-echo -e "Check Status:  ${BOLD}/etc/init.d/netwatchda status${NC}"
+echo -e "\n${BOLD}Next Steps:${NC}"
+echo -e "${BOLD}1.${NC} Edit Settings: ${CYAN}$CONFIG_FILE${NC}"
+echo -e "${BOLD}2.${NC} Edit IP List:  ${CYAN}$IP_LIST_FILE${NC}"
+echo -e "${BOLD}3.${NC} Service Help:  ${BOLD}/etc/init.d/netwatchda help${NC}"
+echo -e "${BOLD}4.${NC} View Logs:      ${BOLD}/etc/init.d/netwatchda logs${NC}"
 echo ""
+echo -e "Monitoring logs: ${BOLD}tail -f /tmp/netwatchda_log.txt${NC}"
+echo -e "${BLUE}-------------------------------------------------------${NC}\n"
