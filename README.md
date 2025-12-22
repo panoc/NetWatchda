@@ -189,29 +189,6 @@ tail -f /tmp/netwatchda_log.txt
 
 ---
 
-# 🚀 netwatchda: OpenWrt Discord Network Monitor
-
-A lightweight, robust, and noob-friendly network watchdog for OpenWrt. It monitors your internet connection (with dual-IP redundancy) and local network devices, sending real-time alerts directly to your Discord server via Webhooks.
-
----
-
-## ✨ Features
-* **Dual-IP Internet Check:** Alerts only if both targets (e.g., Cloudflare and Google) are down to prevent false alarms.
-* **Device Tracking:** Monitor specific local IPs (Servers, PCs, Smart Home hubs) and get notified when they go offline.
-* **Silent Hours:** Queue notifications during the night and receive a summary in the morning.
-* **Heartbeat:** Periodic "I'm alive" messages to ensure the monitor is running.
-* **RAM Friendly:** Log rotation and temporary buffers protect your router's flash memory.
-
----
-
-## 🛠️ Installation
-
-1. Log into your OpenWrt router via SSH.
-2. Run the installer (paste the script content provided in the setup file).
-3. Follow the interactive prompts to enter your **Discord Webhook URL** and **User ID**.
-
----
-
 ## 🖥️ LuCI Web Interface Integration (Recommended)
 
 If you prefer using the web interface over the command line, you can add control buttons to your router's dashboard.
