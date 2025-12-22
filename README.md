@@ -251,11 +251,6 @@ If you enable Silent Hours (e.g., 23:00 to 07:00):
 
 ---
 
-## ⚖️ License
-Copyright (C) 2025 panoc.
-This project is licensed under the **GNU General Public License v3.0**. 
-
----
 
 ## 🗑️ Uninstallation
 
@@ -276,17 +271,8 @@ You will be prompted to:
 
 ---
  
-## 🤝 Contributing
-
-Contributions are welcome.  
-Feel free to open an issue or submit a pull request for:
-
-- Performance optimizations
-- Additional notification platforms
-- New monitoring features
+## ⚖️ License
+Copyright (C) 2025 panoc.
+This project is licensed under the **GNU General Public License v3.0**. 
 
 ---
-
-## 📄 License
-
-GPLv3
