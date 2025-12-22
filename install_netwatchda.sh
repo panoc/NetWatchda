@@ -52,7 +52,7 @@ MIN_FLASH_KB=3072 # 3MB Threshold
 # RAM Check (/tmp partition)
 FREE_RAM_KB=$(df /tmp | awk 'NR==2 {print $4}')
 MIN_RAM_KB=512 # 512KB Threshold
-DEFAULT_MAX_LOG=512000 # Default 512KB
+DEFAULT_MAX_LOG=512000 # Default 512KB for log size
 
 if ! command -v curl >/dev/null 2>&1; then
     echo -e "${CYAN}🔍 curl not found. Checking flash storage...${NC}"
@@ -61,7 +61,6 @@ if ! command -v curl >/dev/null 2>&1; then
         echo -e "${YELLOW}Available: $((FREE_FLASH_KB / 1024))MB | Required: 3MB${NC}"
         exit 1
     else
-        # --- STORAGE SUCCESS MESSAGE ---
         echo -e "${GREEN}✅ Sufficient Flash space found: $((FREE_FLASH_KB / 1024))MB available.${NC}"
         echo -e "${YELLOW}📥 Attempting to install curl and ca-bundle...${NC}"
         opkg update && opkg install curl ca-bundle
@@ -75,7 +74,7 @@ else
     echo -e "${GREEN}✅ Flash storage check passed: $((FREE_FLASH_KB / 1024))MB available.${NC}"
 fi
 
-# Determine Log size based on RAM availability
+# Determine Log size based on RAM availability (RAM Guard Logic)
 if [ "$FREE_RAM_KB" -lt "$MIN_RAM_KB" ]; then
     echo -e "${YELLOW}⚠️  Low RAM detected in /tmp ($FREE_RAM_KB KB).${NC}"
     echo -e "${CYAN}📉 Scaling down log rotation size to 64KB for system stability.${NC}"
@@ -117,7 +116,7 @@ if [ -f "$CONFIG_FILE" ]; then
         echo -e "${GREEN}✅ Configuration patch complete.${NC}"
         KEEP_CONFIG=1
     else
-        echo -e "${RED}🧹 Performing clean install...${NC}"
+        echo -e "${RED}Sweep performing clean install...${NC}"
         /etc/init.d/netwatchda stop 2>/dev/null
         rm -rf "$INSTALL_DIR"
     fi
@@ -132,7 +131,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     read user_webhook </dev/tty
     printf "${BOLD}👤 Enter Discord User ID (for @mentions): ${NC}"
     read user_id </dev/tty
-    printf "${BOLD}🏷️  Enter Router Name (e.g., Panoc_WRT): ${NC}"
+    printf "${BOLD}🏷️  Enter Router Name (e.g., MyRouter): ${NC}"
     read router_name_input </dev/tty
     
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
@@ -304,16 +303,17 @@ while true; do
 done
 EOF
 
-# --- 6. ENHANCED SERVICE SETUP ---
+# --- 6. ENHANCED SERVICE SETUP (WITH CLEAR COMMAND) ---
 chmod +x "$INSTALL_DIR/netwatchda.sh"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
-# netwatchda service control
+# netwatchda service control script
 START=99
 USE_PROCD=1
 
 extra_command "status" "Check if monitor is running"
 extra_command "logs" "View last 20 log entries"
+extra_command "clear" "Clear the log file"
 extra_command "discord" "Test discord notification"
 
 start_service() {
@@ -339,6 +339,12 @@ logs() {
     fi
 }
 
+clear() {
+    NOW_HUMAN=\$(date '+%b %d, %Y %H:%M:%S')
+    echo "\$NOW_HUMAN - [SYSTEM] Log manually cleared by user." > "/tmp/netwatchda_log.txt"
+    echo "Log file cleared successfully."
+}
+
 discord() {
     if [ -f "$CONFIG_FILE" ]; then
         . "$CONFIG_FILE"
@@ -358,7 +364,7 @@ echo -e "${GREEN}✅ Service configured and started.${NC}"
 # --- 7. SUCCESS NOTIFICATION ---
 . "$CONFIG_FILE"
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
-curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
+curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"**Router:** $ROUTER_NAME\n**Time:** $NOW_FINAL\nMonitoring is active with RAM Guard enabled.\", \"color\": 3447003}]}" "$DISCORD_URL" > /dev/null
 
 # --- FINAL OUTPUT ---
 echo ""
@@ -366,11 +372,8 @@ echo -e "${GREEN}=======================================================${NC}"
 echo -e "${BOLD}${GREEN}✅ Installation complete! Script file deleted.${NC}"
 echo -e "${CYAN}📂 Folder:${NC} $INSTALL_DIR"
 echo -e "${GREEN}=======================================================${NC}"
-echo -e "\n${BOLD}Next Steps:${NC}"
-echo -e "${BOLD}1.${NC} Edit Settings: ${CYAN}$CONFIG_FILE${NC}"
-echo -e "${BOLD}2.${NC} Edit IP List:  ${CYAN}$IP_LIST_FILE${NC}"
-echo -e "${BOLD}3.${NC} Service Help:  ${BOLD}/etc/init.d/netwatchda help${NC}"
-echo -e "${BOLD}4.${NC} View Logs:      ${BOLD}/etc/init.d/netwatchda logs${NC}"
+echo -e "\n${BOLD}Commands:${NC}"
+echo -e "Clear Logs:    ${BOLD}/etc/init.d/netwatchda clear${NC}"
+echo -e "View Logs:     ${BOLD}/etc/init.d/netwatchda logs${NC}"
+echo -e "Check Status:  ${BOLD}/etc/init.d/netwatchda status${NC}"
 echo ""
-echo -e "Monitoring logs: ${BOLD}tail -f /tmp/netwatchda_log.txt${NC}"
-echo -e "${BLUE}-------------------------------------------------------${NC}\n"
