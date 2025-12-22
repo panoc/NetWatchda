@@ -3,18 +3,27 @@
 # Copyright (C) 2025 panoc
 # Licensed under the GNU General Public License v3.0
 
+# --- COLOR DEFINITIONS ---
+NC='\033[0m'       # No Color
+BOLD='\033[1m'
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+YELLOW='\033[1;33m'
+
 # --- INITIAL SPACING ---
+echo -e "${BLUE}=======================================================${NC}"
+echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} (by ${BOLD}panoc${NC})"
+echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
+echo -e "${BLUE}=======================================================${NC}"
 echo ""
-echo "-------------------------------------------------------"
-echo "🚀 netwatchda Automated Setup (by panoc)"
-echo "⚖️  License: GNU GPLv3"
-echo "-------------------------------------------------------"
 
 # --- 0. PRE-INSTALLATION CONFIRMATION ---
-printf "This will begin the installation process. Continue? [y/n]: "
+printf "${BOLD}❓ This will begin the installation process. Continue? [y/n]: ${NC}"
 read start_confirm </dev/tty
 if [ "$start_confirm" != "y" ] && [ "$start_confirm" != "Y" ]; then
-    echo "❌ Installation aborted by user."
+    echo -e "${RED}❌ Installation aborted by user.${NC}"
     echo ""
     exit 0
 fi
@@ -26,33 +35,33 @@ SERVICE_NAME="netwatchda"
 SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
 
 # --- 1. CHECK DEPENDENCIES ---
-echo "📦 Checking dependencies..."
+echo -e "\n${BOLD}📦 Checking dependencies...${NC}"
 if ! command -v curl >/dev/null 2>&1; then
-    echo "📥 curl not found. Attempting to install..."
+    echo -e "${YELLOW}📥 curl not found. Attempting to install...${NC}"
     opkg update && opkg install curl ca-bundle
     if [ $? -ne 0 ]; then
-        echo "❌ Error: Failed to install curl. Aborting."
+        echo -e "${RED}❌ Error: Failed to install curl. Aborting.${NC}"
         exit 1
     fi
 fi
-echo "✅ curl is ready."
+echo -e "${GREEN}✅ curl is ready.${NC}"
 
 # --- 2. SMART UPGRADE / INSTALL CHECK ---
 KEEP_CONFIG=0
 if [ -f "$CONFIG_FILE" ]; then
-    echo "⚠️  Existing installation found."
-    echo "1. Keep settings (Upgrade)"
-    echo "2. Clean install"
-    printf "Enter choice [1-2]: "
+    echo -e "\n${YELLOW}⚠️  Existing installation found.${NC}"
+    echo -e "${BOLD}1.${NC} Keep settings (Upgrade)"
+    echo -e "${BOLD}2.${NC} Clean install"
+    printf "${BOLD}Enter choice [1-2]: ${NC}"
     read choice </dev/tty
     
     if [ "$choice" = "1" ]; then
-        echo "🔧 Scanning for missing configuration lines..."
+        echo -e "${CYAN}🔧 Scanning for missing configuration lines...${NC}"
         
         add_if_missing() {
             if ! grep -q "^$1=" "$CONFIG_FILE"; then
                 echo "$1=$2 $3" >> "$CONFIG_FILE"
-                echo "  ➕ Added missing line: $1"
+                echo -e "  ${GREEN}➕ Added missing line:${NC} $1"
             fi
         }
 
@@ -67,10 +76,10 @@ if [ -f "$CONFIG_FILE" ]; then
         add_if_missing "EXT_INTERVAL" "60" "# Internet check frequency"
         add_if_missing "DEVICE_MONITOR" "\"ON\"" "# Local monitoring toggle"
 
-        echo "✅ Configuration patch complete."
+        echo -e "${GREEN}✅ Configuration patch complete.${NC}"
         KEEP_CONFIG=1
     else
-        echo "🧹 Performing clean install..."
+        echo -e "${RED}🧹 Performing clean install...${NC}"
         /etc/init.d/netwatchda stop 2>/dev/null
         rm -rf "$INSTALL_DIR"
     fi
@@ -80,54 +89,53 @@ mkdir -p "$INSTALL_DIR"
 
 # --- 3. CLEAN INSTALL INPUTS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
-    echo "---"
-    printf "🔗 Enter Discord Webhook URL: "
+    echo -e "\n${BLUE}--- Configuration ---${NC}"
+    printf "${BOLD}🔗 Enter Discord Webhook URL: ${NC}"
     read user_webhook </dev/tty
-    printf "👤 Enter Discord User ID (for @mentions): "
+    printf "${BOLD}👤 Enter Discord User ID (for @mentions): ${NC}"
     read user_id </dev/tty
-    printf "🏷️  Enter Router Name (e.g., Panoc_WRT): "
+    printf "${BOLD}🏷️  Enter Router Name (e.g., Panoc_WRT): ${NC}"
     read router_name_input </dev/tty
     
     NOW_HUMAN=$(date '+%b %d, %Y %H:%M:%S')
 
-    echo "🧪 Sending initial test notification..."
+    echo -e "\n${CYAN}🧪 Sending initial test notification...${NC}"
     curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"📟 Router Setup\", \"description\": \"Basic connectivity test successful for **$router_name_input**! <@$user_id>\", \"color\": 3447003}]}" "$user_webhook" > /dev/null
     
-    printf "❓ Received basic notification? [y/n]: "
+    printf "${BOLD}❓ Received basic notification on Discord? [y/n]: ${NC}"
     read confirm_test </dev/tty
-    [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ] && echo "❌ Aborted." && exit 1
+    [ "$confirm_test" != "y" ] && [ "$confirm_test" != "Y" ] && echo -e "${RED}❌ Aborted.${NC}" && exit 1
 
-    echo "---"
-    printf "💓 Enable Heartbeat (System check-in)? [y/n]: "
+    echo -e "\n${BLUE}--- Heartbeat Settings ---${NC}"
+    printf "${BOLD}💓 Enable Heartbeat (System check-in)? [y/n]: ${NC}"
     read hb_enabled </dev/tty
     if [ "$hb_enabled" = "y" ] || [ "$hb_enabled" = "Y" ]; then
         HB_VAL="ON"
-        printf "⏰ Interval in HOURS (e.g., 24): "
+        printf "${BOLD}⏰ Interval in HOURS (e.g., 24): ${NC}"
         read hb_hours </dev/tty
         HB_SEC=$((hb_hours * 3600))
-        printf "🔔 Mention in Heartbeat? [y/n]: "
+        printf "${BOLD}🔔 Mention in Heartbeat? [y/n]: ${NC}"
         read hb_m </dev/tty
         [ "$hb_m" = "y" ] || [ "$hb_m" = "Y" ] && HB_MENTION="ON" || HB_MENTION="OFF"
 
-        printf "🧪 Send a Test Heartbeat now to check format? [y/n]: "
+        printf "${BOLD}🧪 Send a Test Heartbeat now to check format? [y/n]: ${NC}"
         read hb_test_confirm </dev/tty
         if [ "$hb_test_confirm" = "y" ] || [ "$hb_test_confirm" = "Y" ]; then
             HB_MSG="$NOW_HUMAN | $router_name_input | Router Online"
             DESC="💓 **Heartbeat**: $HB_MSG"
             [ "$HB_MENTION" = "ON" ] && DESC="$DESC\n🔔 **Attention:** <@$user_id>"
             curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"description\": \"$DESC\", \"color\": 15844367}]}" "$user_webhook" > /dev/null
-            echo "✅ Heartbeat test sent."
+            echo -e "${GREEN}✅ Heartbeat test sent.${NC}"
         fi
     else
         HB_VAL="OFF"; HB_SEC="86400"; HB_MENTION="OFF"
     fi
 
-    echo "---"
-    echo "Select Monitoring Mode:"
+    echo -e "\n${BLUE}--- Monitoring Mode ---${NC}"
     echo "1. Both: Full monitoring (Default)"
     echo "2. Device Connectivity only: Pings local network"
     echo "3. Internet Connectivity only: Pings external IP"
-    printf "Enter choice [1-3]: "
+    printf "${BOLD}Enter choice [1-3]: ${NC}"
     read mode_choice </dev/tty
 
     case "$mode_choice" in
@@ -172,6 +180,7 @@ EOF
 fi
 
 # --- 4. CORE SCRIPT GENERATION ---
+echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
 cat <<'EOF' > "$INSTALL_DIR/netwatchda.sh"
 #!/bin/sh
 # netwatchda - Network Monitoring for OpenWrt
@@ -270,6 +279,7 @@ EOF
 chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" enable
 "$SERVICE_PATH" restart
+echo -e "${GREEN}✅ Service configured and started.${NC}"
 
 # --- 6. SUCCESS NOTIFICATION ---
 . "$CONFIG_FILE"
@@ -279,15 +289,15 @@ curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\"
 rm -- "$0"
 
 # --- FINAL OUTPUT ---
-echo "---"
-echo "✅ Installation complete!"
-echo "📂 Folder: $INSTALL_DIR"
-echo "---"
-echo "Next Steps:"
-echo "1. Edit Settings: $CONFIG_FILE"
-echo "2. Edit IP List:  $IP_LIST_FILE"
-echo "3. Restart:       /etc/init.d/netwatchda restart"
-echo " "
-echo "Monitoring logs: tail -f /tmp/netwatchda_log.txt"
-echo "-------------------------------------------------------"
 echo ""
+echo -e "${GREEN}=======================================================${NC}"
+echo -e "${BOLD}${GREEN}✅ Installation complete!${NC}"
+echo -e "${CYAN}📂 Folder:${NC} $INSTALL_DIR"
+echo -e "${GREEN}=======================================================${NC}"
+echo -e "\n${BOLD}Next Steps:${NC}"
+echo -e "${BOLD}1.${NC} Edit Settings: ${CYAN}$CONFIG_FILE${NC}"
+echo -e "${BOLD}2.${NC} Edit IP List:  ${CYAN}$IP_LIST_FILE${NC}"
+echo -e "${BOLD}3.${NC} Restart:       ${BOLD}/etc/init.d/netwatchda restart${NC}"
+echo ""
+echo -e "Monitoring logs: ${BOLD}tail -f /tmp/netwatchda_log.txt${NC}"
+echo -e "${BLUE}-------------------------------------------------------${NC}\n"
