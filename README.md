@@ -64,10 +64,9 @@ All configuration files are located in:
 ---
 
 ### netwatchda_settings.conf
-
-Adjust scan intervals, failure thresholds, and logging behavior.
-
-```sh
+<details>
+<summary>Adjust scan intervals, failure thresholds, and logging behavior.</summary>
+<pre>
 [Router Identification]
 ROUTER_NAME="My_OpenWrt_Router" # Name that appears in Discord notifications.
 
@@ -97,19 +96,19 @@ DEVICE_MONITOR="ON" # Set to ON to enable local IP monitoring.
 DEV_SCAN_INTERVAL=10 # Seconds between device pings. Default is 10.
 DEV_FAIL_THRESHOLD=3 # Number of failed cycles before alert. Default 3.
 DEV_PING_COUNT=4 # Number of pings per check. Default 4.```
-
----
+</pre>
+</details>
 
 ### netwatchda_ips.conf
-
-Define LAN devices to monitor.
-
-```txt
+<details>
+<summary>Define LAN devices to monitor.</summary>
+<pre>
 # Format:
 # IP_ADDRESS  # DEVICE NAME
 192.168.1.50  @ NAS Server
 192.168.1.10  @ Smart Home Hub
-```
+</pre>
+</details>
 
 Restart the service after making changes:
 
@@ -170,9 +169,10 @@ You will be prompted to:
 ---
 
 ## ⚙️ Service Management
-
-Usage: /etc/init.d/netwatchda [command]
-
+<details>
+<summary>Usage: /etc/init.d/netwatchda [command]</summary>
+<pre>
+  
 -	start          -  Start the service
 - stop           - Stop the service
 - restart        - Restart the service
@@ -188,7 +188,9 @@ Usage: /etc/init.d/netwatchda [command]
 - trace          - Start with syscall trace
 - info           - Dump procd service info
 - help			     - Display this help message
-
+  </pre>
+</details>
+  
 ## 🤝 Contributing
 
 Contributions are welcome.  
