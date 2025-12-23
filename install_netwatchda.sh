@@ -83,7 +83,7 @@ echo -e "${BLUE}=======================================================${NC}"
 echo ""
 
 # --- 0. PRE-INSTALLATION CONFIRMATION ---
-ask_yn "❓ This will begin the installation process V11. Continue?"
+ask_yn "❓ This will begin the installation process V12. Continue?"
 if [ "$ANSWER_YN" = "n" ]; then
     echo -e "${RED}❌ Installation aborted by user. Cleaning up...${NC}"
     exit 0
@@ -700,9 +700,11 @@ send_notification() {
         fi
 
         # Format: TITLE|||DESC|||COLOR|||FILTER|||TELEGRAM_TEXT
-        # Escape newlines in desc for single-line storage
-        local clean_desc=$(echo "$desc" | tr '\n' ' ')
-        local clean_tel=$(echo "$tel_text" | tr '\n' ' ')
+        # We replace newlines with __BR__ placeholder to preserve formatting in buffer
+        # and flatten the entry to a single line.
+        local clean_desc=$(echo "$desc" | sed ':a;N;$!ba;s/\n/__BR__/g')
+        local clean_tel=$(echo "$tel_text" | sed ':a;N;$!ba;s/\n/__BR__/g')
+        
         echo "${title}|||${clean_desc}|||${color}|||${filter}|||${clean_tel}" >> "$OFFLINE_BUFFER"
         log_msg "[BUFFER] Internet Down. Notification buffered." "UPTIME"
         return
@@ -718,8 +720,9 @@ send_notification() {
         if [ -f "$OFFLINE_BUFFER" ] && [ $(wc -c < "$OFFLINE_BUFFER") -ge 5120 ]; then
              log_msg "[BUFFER] Buffer full (5KB). Send failed & dropped." "UPTIME"
         else
-             local clean_desc=$(echo "$desc" | tr '\n' ' ')
-             local clean_tel=$(echo "$tel_text" | tr '\n' ' ')
+             # Use __BR__ placeholder
+             local clean_desc=$(echo "$desc" | sed ':a;N;$!ba;s/\n/__BR__/g')
+             local clean_tel=$(echo "$tel_text" | sed ':a;N;$!ba;s/\n/__BR__/g')
              echo "${title}|||${clean_desc}|||${color}|||${filter}|||${clean_tel}" >> "$OFFLINE_BUFFER"
              log_msg "[BUFFER] Send failed (Curl error). Notification buffered." "UPTIME"
         fi
@@ -739,10 +742,14 @@ flush_buffer() {
         while IFS= read -r line; do
              # Split by ||| delimiter
              local b_title=$(echo "$line" | awk -F'|||' '{print $1}')
-             local b_desc=$(echo "$line" | awk -F'|||' '{print $2}')
+             local b_desc_raw=$(echo "$line" | awk -F'|||' '{print $2}')
              local b_color=$(echo "$line" | awk -F'|||' '{print $3}')
              local b_filter=$(echo "$line" | awk -F'|||' '{print $4}')
-             local b_tel=$(echo "$line" | awk -F'|||' '{print $5}')
+             local b_tel_raw=$(echo "$line" | awk -F'|||' '{print $5}')
+             
+             # Restore newlines from __BR__ placeholder
+             local b_desc=$(echo "$b_desc_raw" | sed 's/__BR__/\n/g')
+             local b_tel=$(echo "$b_tel_raw" | sed 's/__BR__/\n/g')
              
              sleep 1 # Maintain delay for buffered messages too
              send_payload "$b_title" "$b_desc" "$b_color" "$b_filter" "$b_tel"
@@ -857,8 +864,8 @@ $SUMMARY_CONTENT"
                     MSG_D="**Router:** $ROUTER_NAME\n**Down at:** $START_TIME\n**Up at:** $NOW_HUMAN\n**Total Outage:** $DR"
                     
                     # TELEGRAM FORMAT
-                    # Router name - date and time of down event - date and time for up event - Total Outage
-                    MSG_T="$ROUTER_NAME - $START_TIME - $NOW_HUMAN - $DR"
+                    # 🟢 Connectivity Restored * Router name - date and time of down event - date and time for up event - Total Outage
+                    MSG_T="🟢 Connectivity Restored * $ROUTER_NAME - $START_TIME - $NOW_HUMAN - $DR"
                     
                     log_msg "[SUCCESS] [$ROUTER_NAME] INTERNET UP (Down $DR)" "UPTIME"
                     
@@ -951,7 +958,7 @@ $SUMMARY_CONTENT"
                  D_NAME=$(echo "$LINE" | cut -d'|' -f2); D_IP=$(echo "$LINE" | cut -d'|' -f3); D_TIME=$(echo "$LINE" | cut -d'|' -f4)
                  
                  D_MSG="**Router:** $ROUTER_NAME\n**Device:** $D_NAME ($D_IP)\n**Time:** $D_TIME"
-                 T_MSG="$ROUTER_NAME - $D_NAME - $D_IP - $D_TIME"
+                 T_MSG="🔴 Device Down * $ROUTER_NAME - $D_NAME - $D_IP - $D_TIME"
                  
                  if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
                      if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
@@ -977,7 +984,8 @@ $SUMMARY_CONTENT"
                  T_LIST=$(cat "$TMP_DIR/t_list"); rm -f "$TMP_DIR/t_list"
                  
                  D_MSG="**Router:** $ROUTER_NAME\n**Time:** $CUR_TIME\n\n**Affected Devices:**\n$D_LIST"
-                 T_MSG="$ROUTER_NAME - Multiple Devices Down ($DOWN_COUNT) - $CUR_TIME
+                 # Improved Telegram Aggregated Format
+                 T_MSG="🔴 Multiple Devices Down * $ROUTER_NAME - $CUR_TIME
 $T_LIST"
                  
                  if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
@@ -998,7 +1006,8 @@ $T_LIST"
                  D_DUR=$(echo "$LINE" | cut -d'|' -f5); D_START=$(echo "$LINE" | cut -d'|' -f6)
                  
                  D_MSG="**Router:** $ROUTER_NAME\n**Device:** $D_NAME ($D_IP)\n**Down at:** $D_START\n**Up at:** $D_TIME\n**Outage:** $D_DUR"
-                 T_MSG="$ROUTER_NAME - $D_NAME - $D_IP - $D_TIME"
+                 # 🟢 Device UP* Router name - Device name - Device IP - date - duration
+                 T_MSG="🟢 Device UP* $ROUTER_NAME - $D_NAME - $D_IP - $D_TIME - $D_DUR"
                  
                  if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
                      if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
@@ -1014,14 +1023,14 @@ $T_LIST"
                      d_n=$(echo "$line" | cut -d'|' -f2); d_i=$(echo "$line" | cut -d'|' -f3); d_t=$(echo "$line" | cut -d'|' -f4)
                      d_dur=$(echo "$line" | cut -d'|' -f5)
                      echo "• $d_n ($d_i) @ $d_t (Outage: $d_dur)" >> "$TMP_DIR/d_list_up"
-                     echo "• $d_n - $d_i - $d_t" >> "$TMP_DIR/t_list_up"
+                     echo "• $d_n - $d_i - $d_t - $d_dur" >> "$TMP_DIR/t_list_up"
                  done
                  
                  D_LIST=$(cat "$TMP_DIR/d_list_up"); rm -f "$TMP_DIR/d_list_up"
                  T_LIST=$(cat "$TMP_DIR/t_list_up"); rm -f "$TMP_DIR/t_list_up"
                  
                  D_MSG="**Router:** $ROUTER_NAME\n**Time:** $CUR_TIME\n\n**Restored Devices:**\n$D_LIST"
-                 T_MSG="$ROUTER_NAME - Multiple Devices Online ($UP_COUNT) - $CUR_TIME
+                 T_MSG="🟢 Multiple Devices UP * $ROUTER_NAME - $CUR_TIME
 $T_LIST"
                  
                  if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
