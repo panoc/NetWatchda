@@ -23,27 +23,32 @@ YELLOW='\033[1;33m' # Bold Yellow
 WHITE='\033[1;37m'  # Bold White
 
 # --- INPUT VALIDATION FUNCTIONS ---
-# These functions ensure the user cannot proceed without valid input.
 
 # Function: ask_yn
 # Description: Loops until user presses 'y', 'Y', 'n', or 'N'.
-# Usage: ask_yn "Question Text"
 ask_yn() {
     local prompt="$1"
     while true; do
         printf "${BOLD}%s [y/n]: ${NC}" "$prompt"
         read input_val </dev/tty
         case "$input_val" in
-            y|Y) ANSWER_YN="y"; return 0 ;;
-            n|N) ANSWER_YN="n"; return 1 ;;
-            *) ;; # Do nothing, loop again (ignore invalid input)
+            y|Y) 
+                ANSWER_YN="y"
+                return 0 
+                ;;
+            n|N) 
+                ANSWER_YN="n"
+                return 1 
+                ;;
+            *) 
+                # Ignore invalid input and loop again
+                ;; 
         esac
     done
 }
 
 # Function: ask_opt
 # Description: Loops until user enters a number between 1 and MAX.
-# Usage: ask_opt "Prompt Text" "Max Option Number"
 ask_opt() {
     local prompt="$1"
     local max="$2"
@@ -54,7 +59,6 @@ ask_opt() {
             ANSWER_OPT="$input_val"
             break
         fi
-        # If invalid, loop again silently
     done
 }
 
@@ -66,7 +70,6 @@ echo -e "${BLUE}=======================================================${NC}"
 echo ""
 
 # --- 0. PRE-INSTALLATION CONFIRMATION ---
-# Strict check: only y/n allowed
 ask_yn "❓ This will begin the installation process. Continue?"
 if [ "$ANSWER_YN" = "n" ]; then
     echo -e "${RED}❌ Installation aborted by user. Cleaning up...${NC}"
@@ -164,7 +167,6 @@ if [ -f "$CONFIG_FILE" ]; then
 fi
 
 mkdir -p "$INSTALL_DIR"
-
 # --- 3. CONFIGURATION INPUTS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e "\n${BLUE}--- Configuration ---${NC}"
@@ -271,7 +273,8 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
             break
         fi
     done
-# Notify User of choice
+    
+    # Notify User of choice
     echo -e "\n${BOLD}${WHITE}Selected Notification Strategy:${NC}"
     if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
         echo -e "   • ${GREEN}BOTH (Redundant)${NC}"
@@ -314,9 +317,10 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     fi
     
     # Heartbeat
-    HB_VAL="NO"; HB_SEC="86400"; HB_MENTION="NO"
+    HB_VAL="NO"; HB_SEC="86400"; HB_MENTION="NO"; HB_TARGET="BOTH"
     echo -e "\n${BLUE}--- Heartbeat Settings ---${NC}"
     ask_yn "💓 Enable Heartbeat (System check-in)?"
+    
     if [ "$ANSWER_YN" = "y" ]; then
         HB_VAL="YES"
         printf "${BOLD}   > Interval in HOURS (e.g., 24): ${NC}"
@@ -329,7 +333,29 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
         
         ask_yn "   > Mention in Heartbeat?"
-        [ "$ANSWER_YN" = "y" ] && HB_MENTION="YES"
+        if [ "$ANSWER_YN" = "y" ]; then
+            HB_MENTION="YES"
+        fi
+        
+        # LOGIC TO ASK FOR TARGET (Updated)
+        if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
+             echo -e "${BOLD}${WHITE}   Where to send Heartbeat?${NC}"
+             echo -e "${BOLD}${WHITE}   1.${NC} Discord Only"
+             echo -e "${BOLD}${WHITE}   2.${NC} Telegram Only"
+             echo -e "${BOLD}${WHITE}   3.${NC} Both"
+             ask_opt "   Choice" "3"
+             case "$ANSWER_OPT" in
+                 1) HB_TARGET="DISCORD" ;;
+                 2) HB_TARGET="TELEGRAM" ;;
+                 3) HB_TARGET="BOTH" ;;
+             esac
+        elif [ "$DISCORD_ENABLE_VAL" = "YES" ]; then
+             HB_TARGET="DISCORD"
+        elif [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
+             HB_TARGET="TELEGRAM"
+        else
+             HB_TARGET="NONE"
+        fi
     fi
 
     # Monitoring Mode
@@ -371,6 +397,7 @@ RAM_GUARD_MIN_FREE=4096 # Minimum free RAM in KB required to run alerts. Default
 HEARTBEAT=$HB_VAL # Periodic I am alive notification (YES/NO). Default is NO.
 HB_INTERVAL=$HB_SEC # Seconds between heartbeat messages. Default is 86400.
 HB_MENTION=$HB_MENTION # Ping User ID in heartbeat messages (YES/NO). Default is NO.
+HB_TARGET=$HB_TARGET # Target for Heartbeat: DISCORD, TELEGRAM, BOTH
 
 [Internet Connectivity]
 EXT_ENABLE=$EXT_VAL # Global toggle for internet monitoring (YES/NO). Default is YES.
@@ -396,7 +423,6 @@ EOF
     LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
     [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
 fi
-
 # --- 4. SECURITY & VAULT GENERATION ---
 echo -e "\n${CYAN}🔐 Securing credentials...${NC}"
 
@@ -476,7 +502,9 @@ log_msg() {
 
 # --- HELPER: CONFIG LOADER ---
 load_config() {
-    [ -f "$CONFIG_FILE" ] && eval "$(sed '/^\[.*\]/d' "$CONFIG_FILE" | sed 's/ #.*//')"
+    if [ -f "$CONFIG_FILE" ]; then
+        eval "$(sed '/^\[.*\]/d' "$CONFIG_FILE" | sed 's/ #.*//')"
+    fi
 }
 
 # --- HELPER: CREDENTIAL DECRYPTION (RAM ONLY) ---
@@ -506,36 +534,48 @@ load_credentials() {
 }
 
 # --- HELPER: NOTIFICATIONS ---
+# usage: send_notification "Title" "Desc" "Color" "Type" "TARGET_FILTER"
 send_notification() {
     local title="$1"
     local desc="$2"
     local color="$3"
     local type="$4" # "ALERT", "SUCCESS", "INFO", "WARNING", "SUMMARY"
+    local filter="$5" # "DISCORD", "TELEGRAM", "BOTH", or empty
     
     # Check RAM Guard before firing curl/openssl
     local free_ram=$(df /tmp | awk 'NR==2 {print $4}')
-    [ "$free_ram" -lt "$RAM_GUARD_MIN_FREE" ] && log_msg "[SYSTEM] RAM LOW ($free_ram KB). Notification skipped." "UPTIME" && return
+    if [ "$free_ram" -lt "$RAM_GUARD_MIN_FREE" ]; then
+        log_msg "[SYSTEM] RAM LOW ($free_ram KB). Notification skipped." "UPTIME"
+        return
+    fi
 
     # Load credentials into RAM only for this execution
     load_credentials
     
     # 1. DISCORD
     if [ "$DISCORD_ENABLE" = "YES" ] && [ -n "$DISCORD_WEBHOOK" ]; then
-        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"$title\", \"description\": \"$desc\", \"color\": $color}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1
+        # Send if Filter is empty OR Filter is BOTH OR Filter is DISCORD
+        if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "DISCORD" ]; then
+             curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"$title\", \"description\": \"$desc\", \"color\": $color}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1
+        fi
     fi
 
     # 2. TELEGRAM
     if [ "$TELEGRAM_ENABLE" = "YES" ] && [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
-        local t_msg="$title - $desc"
-        curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d chat_id="$TELEGRAM_CHAT_ID" \
-            -d text="$title
+        # Send if Filter is empty OR Filter is BOTH OR Filter is TELEGRAM
+        if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "TELEGRAM" ]; then
+             local t_msg="$title - $desc"
+             curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+                -d chat_id="$TELEGRAM_CHAT_ID" \
+                -d text="$title
 $desc" >/dev/null 2>&1
+        fi
     fi
     
     # Clear credentials from RAM
     unset DISCORD_WEBHOOK DISCORD_USERID TELEGRAM_BOT_TOKEN TELEGRAM_CHAT_ID
 }
+
 # --- MAIN LOOP ---
 while true; do
     load_config
@@ -557,8 +597,11 @@ while true; do
         LAST_HB_CHECK=$NOW_SEC
         HB_MSG="**Router:** $ROUTER_NAME\n**Status:** Systems Operational\n**Time:** $NOW_HUMAN"
         [ "$HB_MENTION" = "YES" ] && HB_MSG="$HB_MSG\n<@$DISCORD_USERID>"
-        send_notification "💓 Heartbeat Report" "$HB_MSG" "1752220" "INFO"
-        log_msg "[$ROUTER_NAME] Heartbeat sent." "UPTIME"
+        
+        # Use HB_TARGET variable loaded from config (defaults to BOTH if missing)
+        TARGET=${HB_TARGET:-BOTH}
+        send_notification "💓 Heartbeat Report" "$HB_MSG" "1752220" "INFO" "$TARGET"
+        log_msg "[$ROUTER_NAME] Heartbeat sent ($TARGET)." "UPTIME"
     fi
 
     # --- SILENT MODE ---
@@ -575,7 +618,7 @@ while true; do
     if [ "$IS_SILENT" -eq 0 ] && [ -s "$SILENT_BUFFER" ]; then
         SUMMARY_CONTENT=$(cat "$SILENT_BUFFER")
         CLEAN_SUMMARY=$(echo "$SUMMARY_CONTENT" | sed ':a;N;$!ba;s/\n/\\n/g')
-        send_notification "🌙 Silent Hours Summary" "**Router:** $ROUTER_NAME\n$CLEAN_SUMMARY" "10181046" "SUMMARY"
+        send_notification "🌙 Silent Hours Summary" "**Router:** $ROUTER_NAME\n$CLEAN_SUMMARY" "10181046" "SUMMARY" "BOTH"
         > "$SILENT_BUFFER"
     fi
 
@@ -586,9 +629,11 @@ while true; do
         
         EXT_UP=0
         if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP" > /dev/null 2>&1; then
-            EXT_UP=1; log_msg "INTERNET_CHECK ($EXT_IP): UP" "PING"
+            EXT_UP=1
+            log_msg "INTERNET_CHECK ($EXT_IP): UP" "PING"
         elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP2" > /dev/null 2>&1; then
-            EXT_UP=1; log_msg "INTERNET_CHECK ($EXT_IP2): UP" "PING"
+            EXT_UP=1
+            log_msg "INTERNET_CHECK ($EXT_IP2): UP" "PING"
         else
             log_msg "INTERNET_CHECK: DOWN" "PING"
         fi
@@ -601,7 +646,7 @@ while true; do
                 
                 MSG="**Router:** $ROUTER_NAME\n**Time:** $NOW_HUMAN"
                 if [ "$IS_SILENT" -eq 0 ]; then
-                    send_notification "🔴 Internet Down" "$MSG" "15548997" "ALERT"
+                    send_notification "🔴 Internet Down" "$MSG" "15548997" "ALERT" "BOTH"
                 else
                     echo "Internet Down: $NOW_HUMAN" >> "$SILENT_BUFFER"
                 fi
@@ -616,7 +661,7 @@ while true; do
                 log_msg "[SUCCESS] [$ROUTER_NAME] INTERNET UP (Down $DR)" "UPTIME"
                 
                 if [ "$IS_SILENT" -eq 0 ]; then
-                    send_notification "🟢 Connectivity Restored" "$MSG" "3066993" "SUCCESS"
+                    send_notification "🟢 Connectivity Restored" "$MSG" "3066993" "SUCCESS" "BOTH"
                 else
                     echo -e "Internet Restored: $NOW_HUMAN (Down $DR)" >> "$SILENT_BUFFER"
                 fi
@@ -651,7 +696,7 @@ while true; do
                         if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
                              echo "Device $NAME UP: $(date '+%b %d %H:%M:%S') (Down $DR_STR)" >> "$SILENT_BUFFER"
                         else
-                             send_notification "🟢 Device Online" "$D_MSG" "3066993" "SUCCESS"
+                             send_notification "🟢 Device Online" "$D_MSG" "3066993" "SUCCESS" "BOTH"
                         fi
                         rm -f "$FD" "$FT"
                     fi
@@ -668,7 +713,7 @@ while true; do
                          if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
                              echo "Device $NAME DOWN: $TS" >> "$SILENT_BUFFER"
                          else
-                             send_notification "🔴 Device Down" "$D_MSG" "15548997" "ALERT"
+                             send_notification "🔴 Device Down" "$D_MSG" "15548997" "ALERT" "BOTH"
                          fi
                     fi
                 fi
@@ -680,7 +725,6 @@ while true; do
 done
 EOF
 chmod +x "$INSTALL_DIR/netwatchda.sh"
-
 # --- 6. SERVICE SETUP (PROCD) ---
 echo -e "\n${CYAN}⚙️  Configuring system service...${NC}"
 cat <<EOF > "$SERVICE_PATH"
@@ -688,6 +732,7 @@ cat <<EOF > "$SERVICE_PATH"
 START=99
 USE_PROCD=1
 
+# Command Definitions
 extra_command "status" "Check if monitor is running"
 extra_command "logs" "View last 20 log entries"
 extra_command "clear" "Clear the log file"
@@ -732,7 +777,7 @@ clear() {
     echo "Log file cleared."
 }
 
-# Helper to source functions for manual commands
+# Helper to source settings
 load_functions() {
     if [ -f "$INSTALL_DIR/netwatchda.sh" ]; then
         . "$INSTALL_DIR/nwda_settings.conf" 2>/dev/null
@@ -746,7 +791,6 @@ get_hw_key() {
     [ -z "\$cpu_serial" ] && cpu_serial="unknown_serial"
     local mac_addr=\$(cat /sys/class/net/eth0/address 2>/dev/null)
     [ -z "\$mac_addr" ] && mac_addr=\$(cat /sys/class/net/br-lan/address 2>/dev/null)
-    [ -z "\$mac_addr" ] && mac_addr="00:00:00:00:00:00"
     echo -n "\${seed}\${cpu_serial}\${mac_addr}" | openssl dgst -sha256 | awk '{print \$2}'
 }
 
