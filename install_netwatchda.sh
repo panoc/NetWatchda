@@ -114,8 +114,8 @@ echo -e "${GREEN}✅ Sufficient RAM for operations ($FREE_RAM_KB KB available).$
 KEEP_CONFIG=0
 if [ -f "$CONFIG_FILE" ]; then
     echo -e "\n${YELLOW}⚠️  Existing installation found.${NC}"
-    echo -e "1. Keep settings (Upgrade)"
-    echo -e "2. Clean install"
+    echo -e "${BOLD}${WHITE}1.${NC} Keep settings (Upgrade)"
+    echo -e "${BOLD}${WHITE}2.${NC} Clean install"
     printf "${BOLD}Enter choice [1-2]: ${NC}"
     read choice </dev/tty
     
@@ -131,7 +131,7 @@ fi
 
 mkdir -p "$INSTALL_DIR"
 
-# --- 3. CLEAN INSTALL INPUTS ---
+# --- 3. CONFIGURATION INPUTS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e "\n${BLUE}--- Configuration ---${NC}"
     
@@ -139,36 +139,111 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     printf "${BOLD}🏷️  Enter Router Name (e.g., MyRouter): ${NC}"
     read router_name_input </dev/tty
     
-    # Discord Setup
+    # --- DISCORD SETUP LOOP ---
     DISCORD_ENABLE_VAL="NO"
     DISCORD_WEBHOOK=""
     DISCORD_USERID=""
     
     echo -e "\n${BLUE}--- Notification Settings ---${NC}"
-    printf "${BOLD}1. Enable Discord Notifications? [y/n]: ${NC}"
-    read discord_choice </dev/tty
-    if [ "$discord_choice" = "y" ] || [ "$discord_choice" = "Y" ]; then
+    while :; do
+        printf "${BOLD}1. Enable Discord Notifications? [y/n]: ${NC}"
+        read discord_choice </dev/tty
+        if [ "$discord_choice" != "y" ] && [ "$discord_choice" != "Y" ]; then
+            DISCORD_ENABLE_VAL="NO"
+            break
+        fi
+        
+        # User said YES, ask for credentials
         DISCORD_ENABLE_VAL="YES"
         printf "${BOLD}   > Enter Discord Webhook URL: ${NC}"
         read DISCORD_WEBHOOK </dev/tty
         printf "${BOLD}   > Enter Discord User ID (for @mentions): ${NC}"
         read DISCORD_USERID </dev/tty
-    fi
+        
+        # Ask to test
+        printf "${BOLD}   ❓ Send test notification to Discord now? [y/n]: ${NC}"
+        read test_d </dev/tty
+        if [ "$test_d" = "y" ] || [ "$test_d" = "Y" ]; then
+             echo -e "${YELLOW}   🧪 Sending Discord test...${NC}"
+             curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🧪 Setup Test\", \"description\": \"Discord configured successfully for **$router_name_input**.\", \"color\": 1752220}]}" "$DISCORD_WEBHOOK"
+             echo ""
+             printf "${BOLD}   ❓ Did you receive the notification? [y/n]: ${NC}"
+             read confirm_d </dev/tty
+             
+             if [ "$confirm_d" = "y" ] || [ "$confirm_d" = "Y" ]; then
+                 echo -e "${GREEN}   ✅ Discord configured.${NC}"
+                 break
+             else
+                 echo -e "${RED}   ❌ Test failed.${NC}"
+                 echo -e "   1. Input credentials again"
+                 echo -e "   2. Disable Discord and continue"
+                 printf "${BOLD}   Choice [1-2]: ${NC}"
+                 read retry_d </dev/tty
+                 if [ "$retry_d" = "2" ]; then
+                     DISCORD_ENABLE_VAL="NO"
+                     DISCORD_WEBHOOK=""
+                     DISCORD_USERID=""
+                     break
+                 fi
+                 # Loop continues (Input credentials again)
+             fi
+        else
+            # User skipped test, assume valid
+            break
+        fi
+    done
 
-    # Telegram Setup
+    # --- TELEGRAM SETUP LOOP ---
     TELEGRAM_ENABLE_VAL="NO"
     TELEGRAM_BOT_TOKEN=""
     TELEGRAM_CHAT_ID=""
     
-    printf "${BOLD}2. Enable Telegram Notifications? [y/n]: ${NC}"
-    read telegram_choice </dev/tty
-    if [ "$telegram_choice" = "y" ] || [ "$telegram_choice" = "Y" ]; then
+    while :; do
+        printf "${BOLD}2. Enable Telegram Notifications? [y/n]: ${NC}"
+        read telegram_choice </dev/tty
+        if [ "$telegram_choice" != "y" ] && [ "$telegram_choice" != "Y" ]; then
+            TELEGRAM_ENABLE_VAL="NO"
+            break
+        fi
+        
+        # User said YES
         TELEGRAM_ENABLE_VAL="YES"
         printf "${BOLD}   > Enter Telegram Bot Token: ${NC}"
         read TELEGRAM_BOT_TOKEN </dev/tty
         printf "${BOLD}   > Enter Telegram Chat ID: ${NC}"
         read TELEGRAM_CHAT_ID </dev/tty
-    fi
+        
+        # Ask to test
+        printf "${BOLD}   ❓ Send test notification to Telegram now? [y/n]: ${NC}"
+        read test_t </dev/tty
+        if [ "$test_t" = "y" ] || [ "$test_t" = "Y" ]; then
+            echo -e "${YELLOW}   🧪 Sending Telegram test...${NC}"
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" -d chat_id="$TELEGRAM_CHAT_ID" -d text="🧪 Setup Test - Telegram configured successfully for $router_name_input." >/dev/null 2>&1
+            echo ""
+            printf "${BOLD}   ❓ Did you receive the notification? [y/n]: ${NC}"
+            read confirm_t </dev/tty
+            
+            if [ "$confirm_t" = "y" ] || [ "$confirm_t" = "Y" ]; then
+                echo -e "${GREEN}   ✅ Telegram configured.${NC}"
+                break
+            else
+                echo -e "${RED}   ❌ Test failed.${NC}"
+                echo -e "   1. Input credentials again"
+                echo -e "   2. Disable Telegram and continue"
+                printf "${BOLD}   Choice [1-2]: ${NC}"
+                read retry_t </dev/tty
+                if [ "$retry_t" = "2" ]; then
+                    TELEGRAM_ENABLE_VAL="NO"
+                    TELEGRAM_BOT_TOKEN=""
+                    TELEGRAM_CHAT_ID=""
+                    break
+                fi
+                # Loop continues
+            fi
+        else
+            break
+        fi
+    done
     
     # Notify User of choice
     echo -e "\n${BOLD}${WHITE}Selected Notification Strategy:${NC}"
@@ -324,15 +399,16 @@ get_hw_key() {
 
 # Create the Vault Data String
 # Format: DISCORD_WEBHOOK|DISCORD_USERID|TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID
-VAULT_DATA="${DISCORD_WEBHOOK}|${DISCORD_USERID}|${TELEGRAM_BOT_TOKEN}|${TELEGRAM_CHAT_ID}"
+if [ "$KEEP_CONFIG" -eq 0 ]; then
+    VAULT_DATA="${DISCORD_WEBHOOK}|${DISCORD_USERID}|${TELEGRAM_BOT_TOKEN}|${TELEGRAM_CHAT_ID}"
 
-# Encrypt the Vault
-HW_KEY=$(get_hw_key)
-if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
-    echo -e "${GREEN}✅ Credentials encrypted and locked to this hardware.${NC}"
-else
-    echo -e "${RED}❌ Encryption failed! Check openssl-util.${NC}"
-    # Fallback for installation flow, though service will fail to notify
+    # Encrypt the Vault
+    HW_KEY=$(get_hw_key)
+    if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
+        echo -e "${GREEN}✅ Credentials encrypted and locked to this hardware.${NC}"
+    else
+        echo -e "${RED}❌ Encryption failed! Check openssl-util.${NC}"
+    fi
 fi
 
 # --- 5. CORE SCRIPT GENERATION ---
@@ -822,13 +898,18 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart >/dev/null 2>&1
 
 # --- 7. FINAL SUCCESS & TEST NOTIFICATION ---
-# Source the newly created script to load notification function into memory for this session
-. "$INSTALL_DIR/netwatchda.sh" >/dev/null 2>&1
-
-# Send Installation Complete Notification
+# Manually send the final notification using current Installer variables
+# This avoids sourcing the infinite loop script.
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 MSG="**Router:** $router_name_input\n**Time:** $NOW_FINAL\n**Status:** Service Installed & Active"
-send_notification "🚀 netwatchda Service Started" "$MSG" "1752220" "INFO"
+
+if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ -n "$DISCORD_WEBHOOK" ]; then
+    curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchda Service Started\", \"description\": \"$MSG\", \"color\": 1752220}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1
+fi
+
+if [ "$TELEGRAM_ENABLE_VAL" = "YES" ] && [ -n "$TELEGRAM_BOT_TOKEN" ]; then
+    curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" -d chat_id="$TELEGRAM_CHAT_ID" -d text="🚀 netwatchda Service Started - $router_name_input" >/dev/null 2>&1
+fi
 
 # --- FINAL OUTPUT ---
 echo ""
