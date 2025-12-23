@@ -4,6 +4,350 @@
 # Licensed under the GNU General Public License v3.0
 
 # --- SELF-CLEAN LOGIC ---
+SCRIPT_NAME="$0"
+cleanup() {
+    rm -f "$SCRIPT_NAME"
+    exit
+}
+trap cleanup INT TERM EXIT
+
+# --- COLOR DEFINITIONS ---
+NC='\033[0m'        
+BOLD='\033[1m'
+RED='\033[1;31m'    # Light Red
+GREEN='\033[1;32m'  # Light Green
+BLUE='\033[1;34m'   # Light Blue (Vibrant)
+CYAN='\033[1;36m'   # Light Cyan (Vibrant)
+YELLOW='\033[1;33m' # Bold Yellow
+WHITE='\033[1;37m'  # Bold White
+
+# --- INPUT VALIDATION FUNCTIONS ---
+ask_yn() {
+    local prompt="$1"
+    while true; do
+        printf "${BOLD}%s [y/n]: ${NC}" "$prompt"
+        read input_val </dev/tty
+        case "$input_val" in
+            y|Y) ANSWER_YN="y"; return 0 ;;
+            n|N) ANSWER_YN="n"; return 1 ;;
+            *) ;; 
+        esac
+    done
+}
+
+ask_opt() {
+    local prompt="$1"
+    local max="$2"
+    while true; do
+        printf "${BOLD}%s [1-%s]: ${NC}" "$prompt" "$max"
+        read input_val </dev/tty
+        if echo "$input_val" | grep -qE "^[1-$max]$"; then
+            ANSWER_OPT="$input_val"
+            break
+        fi
+    done
+}
+
+# --- INITIAL HEADER ---
+echo -e "${BLUE}=======================================================${NC}"
+echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} (by ${BOLD}panoc${NC})"
+echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
+echo -e "${BLUE}=======================================================${NC}"
+echo ""
+
+# --- 0. PRE-INSTALLATION CONFIRMATION ---
+ask_yn "❓ This will begin the installation process. Continue?"
+if [ "$ANSWER_YN" = "n" ]; then
+    echo -e "${RED}❌ Installation aborted by user. Cleaning up...${NC}"
+    exit 0
+fi
+
+# --- DIRECTORY & FILE SETUP ---
+INSTALL_DIR="/root/netwatchda"
+TMP_DIR="/tmp/netwatchda"
+CONFIG_FILE="$INSTALL_DIR/nwda_settings.conf"
+IP_LIST_FILE="$INSTALL_DIR/nwda_ips.conf"
+VAULT_FILE="$INSTALL_DIR/.vault.enc"
+SERVICE_NAME="netwatchda"
+SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
+
+mkdir -p "$TMP_DIR"
+
+# --- 1. SECURITY PREFERENCES ---
+# We ask this FIRST to determine dependencies
+echo -e "\n${BLUE}--- Security Preferences ---${NC}"
+echo -e "Choose how to store your Discord/Telegram credentials:"
+echo -e ""
+echo -e "${BOLD}${WHITE}1. OpenSSL (High Security)${NC}"
+echo -e "   • ${GREEN}Pros:${NC} AES-256 Encryption. Locked to Hardware ID. Very secure."
+echo -e "   • ${RED}Cons:${NC} Requires 'openssl-util' (~500KB). Heavier on old CPUs."
+[Image of AES encryption process]
+echo -e ""
+echo -e "${BOLD}${WHITE}2. Base64 (Low Security)${NC}"
+echo -e "   • ${GREEN}Pros:${NC} No extra dependencies. Very fast. Works on anything."
+echo -e "   • ${RED}Cons:${NC} Not encryption (just encoding). Can be decoded by anyone."
+[Image of Base64 encoding table]
+
+ask_opt "Select Method" "2"
+if [ "$ANSWER_OPT" = "1" ]; then
+    ENCRYPTION_METHOD="OPENSSL"
+    echo -e "${CYAN}🔒 Selected: OpenSSL (High Security)${NC}"
+else
+    ENCRYPTION_METHOD="BASE64"
+    echo -e "${YELLOW}🔓 Selected: Base64 (Low Security)${NC}"
+fi
+
+# --- 2. CHECK DEPENDENCIES & STORAGE ---
+echo -e "\n${BOLD}📦 Checking system readiness...${NC}"
+
+# Flash Storage Check
+FREE_FLASH_KB=$(df / | awk 'NR==2 {print $4}')
+MIN_FLASH_KB=3072 
+
+# RAM Check
+FREE_RAM_KB=$(df /tmp | awk 'NR==2 {print $4}')
+MIN_RAM_KB=4096 
+
+# Dynamic Dependency List based on Encryption Choice
+MISSING_DEPS=""
+command -v curl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS curl"
+[ -f /etc/ssl/certs/ca-certificates.crt ] || command -v opkg >/dev/null && opkg list-installed | grep -q ca-bundle || MISSING_DEPS="$MISSING_DEPS ca-bundle"
+
+if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
+    command -v openssl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS openssl-util"
+fi
+
+# RAM Guard
+if [ "$FREE_RAM_KB" -lt "$MIN_RAM_KB" ]; then
+    echo -e "${RED}❌ ERROR: Insufficient RAM for operations!${NC}"
+    exit 1
+fi
+
+# Install Dependencies
+if [ -n "$MISSING_DEPS" ]; then
+    echo -e "${CYAN}🔍 Missing dependencies found:${BOLD}$MISSING_DEPS${NC}"
+    if [ "$FREE_FLASH_KB" -lt "$MIN_FLASH_KB" ]; then
+        echo -e "${RED}❌ ERROR: Insufficient Flash storage!${NC}"
+        echo -e "${YELLOW}Available: $((FREE_FLASH_KB / 1024))MB | Required: 3MB${NC}"
+        exit 1
+    else
+        ask_yn "❓ Download missing dependencies?"
+        if [ "$ANSWER_YN" = "y" ]; then
+             echo -e "${YELLOW}📥 Updating package lists...${NC}"
+             opkg update --no-check-certificate > /dev/null 2>&1
+             echo -e "${YELLOW}📥 Installing:$MISSING_DEPS...${NC}"
+             opkg install --no-check-certificate $MISSING_DEPS > /tmp/nwda_install_err.log 2>&1
+             if [ $? -ne 0 ]; then
+                echo -e "${RED}❌ Error installing dependencies. Log:${NC}"
+                cat /tmp/nwda_install_err.log
+                exit 1
+             fi
+             echo -e "${GREEN}✅ Dependencies installed successfully.${NC}"
+        else
+             echo -e "${RED}❌ Cannot proceed without dependencies. Aborting.${NC}"
+             exit 1
+        fi
+    fi
+else
+    echo -e "${GREEN}✅ All dependencies installed.${NC}"
+    echo -e "${GREEN}✅ Flash storage check passed.${NC}"
+fi
+echo -e "${GREEN}✅ System Ready.${NC}"
+
+# --- 3. INSTALL/UPGRADE CHECK ---
+KEEP_CONFIG=0
+if [ -f "$CONFIG_FILE" ]; then
+    echo -e "\n${YELLOW}⚠️  Existing installation found.${NC}"
+    echo -e "${BOLD}${WHITE}1.${NC} Keep settings (Upgrade)"
+    echo -e "${BOLD}${WHITE}2.${NC} Clean install"
+    ask_opt "Enter choice" "2"
+    
+    if [ "$ANSWER_OPT" = "1" ]; then
+        echo -e "${CYAN}🔧 Upgrading logic while keeping settings...${NC}"
+        KEEP_CONFIG=1
+    else
+        echo -e "${RED}🧹 Performing clean install...${NC}"
+        /etc/init.d/netwatchda stop >/dev/null 2>&1
+        rm -rf "$INSTALL_DIR"
+    fi
+fi
+mkdir -p "$INSTALL_DIR"
+# --- 4. CONFIGURATION INPUTS ---
+if [ "$KEEP_CONFIG" -eq 0 ]; then
+    echo -e "\n${BLUE}--- Configuration ---${NC}"
+    printf "${BOLD}🏷️  Enter Router Name (e.g., MyRouter): ${NC}"
+    read router_name_input </dev/tty
+    
+    # --- DISCORD LOOP ---
+    DISCORD_ENABLE_VAL="NO"; DISCORD_WEBHOOK=""; DISCORD_USERID=""
+    echo -e "\n${BLUE}--- Notification Settings ---${NC}"
+    while :; do
+        ask_yn "1. Enable Discord Notifications?"
+        if [ "$ANSWER_YN" = "n" ]; then break; fi
+        DISCORD_ENABLE_VAL="YES"
+        printf "${BOLD}   > Enter Discord Webhook URL: ${NC}"; read DISCORD_WEBHOOK </dev/tty
+        printf "${BOLD}   > Enter Discord User ID: ${NC}"; read DISCORD_USERID </dev/tty
+        ask_yn "   ❓ Send test notification to Discord now?"
+        if [ "$ANSWER_YN" = "y" ]; then
+             echo -e "${YELLOW}   🧪 Sending Discord test...${NC}"
+             curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🧪 Setup Test\", \"description\": \"Discord configured.\", \"color\": 1752220}]}" "$DISCORD_WEBHOOK"
+             echo ""
+             ask_yn "   ❓ Did you receive the notification?"
+             if [ "$ANSWER_YN" = "y" ]; then echo -e "${GREEN}   ✅ Discord configured.${NC}"; break; else
+                 echo -e "${RED}   ❌ Test failed.${NC}"
+                 echo -e "${BOLD}${WHITE}   1.${NC} Input credentials again"; echo -e "${BOLD}${WHITE}   2.${NC} Disable Discord and continue"
+                 ask_opt "   Choice" "2"
+                 if [ "$ANSWER_OPT" = "2" ]; then DISCORD_ENABLE_VAL="NO"; DISCORD_WEBHOOK=""; DISCORD_USERID=""; break; fi
+             fi
+        else break; fi
+    done
+
+    # --- TELEGRAM LOOP ---
+    TELEGRAM_ENABLE_VAL="NO"; TELEGRAM_BOT_TOKEN=""; TELEGRAM_CHAT_ID=""
+    while :; do
+        ask_yn "2. Enable Telegram Notifications?"
+        if [ "$ANSWER_YN" = "n" ]; then break; fi
+        TELEGRAM_ENABLE_VAL="YES"
+        printf "${BOLD}   > Enter Telegram Bot Token: ${NC}"; read TELEGRAM_BOT_TOKEN </dev/tty
+        printf "${BOLD}   > Enter Telegram Chat ID: ${NC}"; read TELEGRAM_CHAT_ID </dev/tty
+        ask_yn "   ❓ Send test notification to Telegram now?"
+        if [ "$ANSWER_YN" = "y" ]; then
+            echo -e "${YELLOW}   🧪 Sending Telegram test...${NC}"
+            curl -s -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" -d chat_id="$TELEGRAM_CHAT_ID" -d text="🧪 Setup Test - Telegram configured." >/dev/null 2>&1
+            echo ""
+            ask_yn "   ❓ Did you receive the notification?"
+            if [ "$ANSWER_YN" = "y" ]; then echo -e "${GREEN}   ✅ Telegram configured.${NC}"; break; else
+                echo -e "${RED}   ❌ Test failed.${NC}"
+                echo -e "${BOLD}${WHITE}   1.${NC} Input credentials again"; echo -e "${BOLD}${WHITE}   2.${NC} Disable Telegram and continue"
+                ask_opt "   Choice" "2"
+                if [ "$ANSWER_OPT" = "2" ]; then TELEGRAM_ENABLE_VAL="NO"; TELEGRAM_BOT_TOKEN=""; TELEGRAM_CHAT_ID=""; break; fi
+            fi
+        else break; fi
+    done
+    
+    # Notify User of choice
+    echo -e "\n${BOLD}${WHITE}Selected Notification Strategy:${NC}"
+    if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
+        echo -e "   • ${GREEN}BOTH (Redundant)${NC}"
+    elif [ "$DISCORD_ENABLE_VAL" = "YES" ]; then
+         echo -e "   • ${BLUE}Discord Only${NC}"
+    elif [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
+         echo -e "   • ${CYAN}Telegram Only${NC}"
+    else
+         echo -e "   • ${RED}NONE (Log only mode)${NC}"
+    fi
+
+    # Silent Hours
+    SILENT_ENABLE_VAL="NO"; user_silent_start="23"; user_silent_end="07"
+    echo -e "\n${BLUE}--- Silent Hours (Mute Alerts) ---${NC}"
+    ask_yn "🌙 Enable Silent Hours?"
+    if [ "$ANSWER_YN" = "y" ]; then
+        SILENT_ENABLE_VAL="YES"
+        while :; do
+            printf "${BOLD}   > Start Hour (0-23): ${NC}"; read user_silent_start </dev/tty
+            if echo "$user_silent_start" | grep -qE '^[0-9]+$' && [ "$user_silent_start" -ge 0 ] && [ "$user_silent_start" -le 23 ] 2>/dev/null; then break; fi
+        done
+        while :; do
+            printf "${BOLD}   > End Hour (0-23): ${NC}"; read user_silent_end </dev/tty
+            if echo "$user_silent_end" | grep -qE '^[0-9]+$' && [ "$user_silent_end" -ge 0 ] && [ "$user_silent_end" -le 23 ] 2>/dev/null; then break; fi
+        done
+    fi
+    
+    # Heartbeat
+    HB_VAL="NO"; HB_SEC="86400"; HB_MENTION="NO"; HB_TARGET="BOTH"
+    echo -e "\n${BLUE}--- Heartbeat Settings ---${NC}"
+    ask_yn "💓 Enable Heartbeat (System check-in)?"
+    if [ "$ANSWER_YN" = "y" ]; then
+        HB_VAL="YES"
+        printf "${BOLD}   > Interval in HOURS (e.g., 24): ${NC}"
+        read hb_hours </dev/tty
+        if echo "$hb_hours" | grep -qE '^[0-9]+$'; then HB_SEC=$((hb_hours * 3600)); else HB_SEC=86400; fi
+        ask_yn "   > Mention in Heartbeat?"
+        [ "$ANSWER_YN" = "y" ] && HB_MENTION="YES"
+        
+        # TARGET SELECTION
+        if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
+             echo -e "${BOLD}${WHITE}   Where to send Heartbeat?${NC}"
+             echo -e "${BOLD}${WHITE}   1.${NC} Discord Only"
+             echo -e "${BOLD}${WHITE}   2.${NC} Telegram Only"
+             echo -e "${BOLD}${WHITE}   3.${NC} Both"
+             ask_opt "   Choice" "3"
+             case "$ANSWER_OPT" in
+                 1) HB_TARGET="DISCORD" ;;
+                 2) HB_TARGET="TELEGRAM" ;;
+                 3) HB_TARGET="BOTH" ;;
+             esac
+        elif [ "$DISCORD_ENABLE_VAL" = "YES" ]; then HB_TARGET="DISCORD"; elif [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then HB_TARGET="TELEGRAM"; else HB_TARGET="NONE"; fi
+    fi
+
+    # Monitoring Mode
+    echo -e "\n${BLUE}--- Monitoring Mode ---${NC}"
+    echo -e "${BOLD}${WHITE}1.${NC} Both: Full monitoring (Default)"
+    echo -e "${BOLD}${WHITE}2.${NC} Device Connectivity only: Pings local network"
+    echo -e "${BOLD}${WHITE}3.${NC} Internet Connectivity only: Pings external IP"
+    ask_opt "Enter choice" "3"
+    case "$ANSWER_OPT" in
+        2) EXT_VAL="NO";  DEV_VAL="YES" ;;
+        3) EXT_VAL="YES"; DEV_VAL="NO"  ;;
+        *) EXT_VAL="YES"; DEV_VAL="YES" ;;
+    esac
+
+    # --- GENERATE SETTINGS FILE ---
+    cat <<EOF > "$CONFIG_FILE"
+# nwda_settings.conf - Configuration for netwatchda
+ROUTER_NAME="$router_name_input"
+ENCRYPTION_METHOD="$ENCRYPTION_METHOD" # Options: OPENSSL, BASE64
+
+[Log Settings]
+UPTIME_LOG_MAX_SIZE=51200
+PING_LOG_ENABLE=NO
+
+[Discord Settings]
+DISCORD_ENABLE=$DISCORD_ENABLE_VAL
+SILENT_ENABLE=$SILENT_ENABLE_VAL
+SILENT_START=$user_silent_start
+SILENT_END=$user_silent_end
+
+[Telegram Settings]
+TELEGRAM_ENABLE=$TELEGRAM_ENABLE_VAL
+
+[Monitoring Settings]
+CPU_GUARD_THRESHOLD=2.0
+RAM_GUARD_MIN_FREE=4096
+HEARTBEAT=$HB_VAL
+HB_INTERVAL=$HB_SEC
+HB_MENTION=$HB_MENTION
+HB_TARGET=$HB_TARGET
+
+[Internet Connectivity]
+EXT_ENABLE=$EXT_VAL
+EXT_IP=1.1.1.1
+EXT_IP2=8.8.8.8
+EXT_SCAN_INTERVAL=60
+EXT_FAIL_THRESHOLD=1
+EXT_PING_COUNT=4
+EXT_PING_TIMEOUT=1
+
+[Local Device Monitoring]
+DEVICE_MONITOR=$DEV_VAL
+DEV_SCAN_INTERVAL=10
+DEV_FAIL_THRESHOLD=3
+DEV_PING_COUNT=4
+EOF
+
+    cat <<EOF > "$IP_LIST_FILE"
+# Format: IP_ADDRESS @ NAME
+# Example: 192.168.1.50 @ Home Server
+EOF
+    LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
+    [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
+fi
+#!/bin/sh
+# netwatchda Installer - Automated Setup for OpenWrt
+# Copyright (C) 2025 panoc
+# Licensed under the GNU General Public License v3.0
+
+# --- SELF-CLEAN LOGIC ---
 # This ensures the installer script deletes itself after execution
 SCRIPT_NAME="$0"
 cleanup() {
@@ -23,7 +367,6 @@ YELLOW='\033[1;33m' # Bold Yellow
 WHITE='\033[1;37m'  # Bold White
 
 # --- INPUT VALIDATION FUNCTIONS ---
-
 # Function: ask_yn
 # Description: Loops until user presses 'y', 'Y', 'n', or 'N'.
 ask_yn() {
@@ -88,7 +431,29 @@ SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
 # Ensure temp directory exists for installation logs
 mkdir -p "$TMP_DIR"
 
-# --- 1. CHECK DEPENDENCIES & STORAGE (FLASH & RAM) ---
+# --- 1. SECURITY PREFERENCES ---
+# We ask this FIRST to determine dependencies
+echo -e "\n${BLUE}--- Security Preferences ---${NC}"
+echo -e "Choose how to store your Discord/Telegram credentials:"
+echo -e ""
+echo -e "${BOLD}${WHITE}1. OpenSSL (High Security)${NC}"
+echo -e "   • ${GREEN}Pros:${NC} AES-256 Encryption. Locked to Hardware ID. Very secure."
+echo -e "   • ${RED}Cons:${NC} Requires 'openssl-util' (~500KB). Heavier on old CPUs."
+echo -e ""
+echo -e "${BOLD}${WHITE}2. Base64 (Low Security)${NC}"
+echo -e "   • ${GREEN}Pros:${NC} No extra dependencies. Very fast. Works on anything."
+echo -e "   • ${RED}Cons:${NC} Not encryption (just encoding). Can be decoded by anyone."
+
+ask_opt "Select Method" "2"
+if [ "$ANSWER_OPT" = "1" ]; then
+    ENCRYPTION_METHOD="OPENSSL"
+    echo -e "${CYAN}🔒 Selected: OpenSSL (High Security)${NC}"
+else
+    ENCRYPTION_METHOD="BASE64"
+    echo -e "${YELLOW}🔓 Selected: Base64 (Low Security)${NC}"
+fi
+
+# --- 2. CHECK DEPENDENCIES & STORAGE ---
 echo -e "\n${BOLD}📦 Checking system readiness...${NC}"
 
 # Flash Storage Check (Root partition)
@@ -99,15 +464,18 @@ MIN_FLASH_KB=3072 # 3MB Threshold
 FREE_RAM_KB=$(df /tmp | awk 'NR==2 {print $4}')
 MIN_RAM_KB=4096 # 4MB Threshold for OpenSSL operations
 
-# Depedency List
+# Dynamic Dependency List based on Encryption Choice
 MISSING_DEPS=""
 command -v curl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS curl"
-command -v openssl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS openssl-util"
 [ -f /etc/ssl/certs/ca-certificates.crt ] || command -v opkg >/dev/null && opkg list-installed | grep -q ca-bundle || MISSING_DEPS="$MISSING_DEPS ca-bundle"
+
+if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
+    command -v openssl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS openssl-util"
+fi
 
 # RAM Guard for Installation
 if [ "$FREE_RAM_KB" -lt "$MIN_RAM_KB" ]; then
-    echo -e "${RED}❌ ERROR: Insufficient RAM for encryption operations!${NC}"
+    echo -e "${RED}❌ ERROR: Insufficient RAM for operations!${NC}"
     echo -e "${YELLOW}Available: $((FREE_RAM_KB / 1024))MB | Required: 4MB${NC}"
     exit 1
 fi
@@ -142,13 +510,13 @@ if [ -n "$MISSING_DEPS" ]; then
         fi
     fi
 else
-    echo -e "${GREEN}✅ All dependencies (curl, openssl) are installed.${NC}"
+    echo -e "${GREEN}✅ All dependencies installed.${NC}"
     echo -e "${GREEN}✅ Flash storage check passed: $((FREE_FLASH_KB / 1024))MB available.${NC}"
 fi
 
 echo -e "${GREEN}✅ Sufficient RAM for operations ($FREE_RAM_KB KB available).${NC}"
 
-# --- 2. SMART UPGRADE / INSTALL CHECK ---
+# --- 3. SMART UPGRADE / INSTALL CHECK ---
 KEEP_CONFIG=0
 if [ -f "$CONFIG_FILE" ]; then
     echo -e "\n${YELLOW}⚠️  Existing installation found.${NC}"
@@ -167,7 +535,8 @@ if [ -f "$CONFIG_FILE" ]; then
 fi
 
 mkdir -p "$INSTALL_DIR"
-# --- 3. CONFIGURATION INPUTS ---
+
+# --- 4. CONFIGURATION INPUTS ---
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e "\n${BLUE}--- Configuration ---${NC}"
     
@@ -317,7 +686,11 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     fi
     
     # Heartbeat
-    HB_VAL="NO"; HB_SEC="86400"; HB_MENTION="NO"; HB_TARGET="BOTH"
+    HB_VAL="NO"
+    HB_SEC="86400"
+    HB_MENTION="NO"
+    HB_TARGET="BOTH"
+    
     echo -e "\n${BLUE}--- Heartbeat Settings ---${NC}"
     ask_yn "💓 Enable Heartbeat (System check-in)?"
     
@@ -375,8 +748,9 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     # --- GENERATE SETTINGS FILE ---
     cat <<EOF > "$CONFIG_FILE"
 # nwda_settings.conf - Configuration for netwatchda
-# Note: Discord/Telegram tokens are stored encrypted in .vault.enc
+# Note: Credentials are encrypted using $ENCRYPTION_METHOD in .vault.enc
 ROUTER_NAME="$router_name_input"
+ENCRYPTION_METHOD="$ENCRYPTION_METHOD" # Options: OPENSSL, BASE64
 
 [Log Settings]
 UPTIME_LOG_MAX_SIZE=51200 # Max log file size in bytes for uptime tracking. Default is 51200.
@@ -423,7 +797,8 @@ EOF
     LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
     [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
 fi
-# --- 4. SECURITY & VAULT GENERATION ---
+
+# --- 5. SECURITY & VAULT GENERATION ---
 echo -e "\n${CYAN}🔐 Securing credentials...${NC}"
 
 # Function to generate a unique Hardware Key (HWID)
@@ -444,17 +819,25 @@ get_hw_key() {
 # Format: DISCORD_WEBHOOK|DISCORD_USERID|TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     VAULT_DATA="${DISCORD_WEBHOOK}|${DISCORD_USERID}|${TELEGRAM_BOT_TOKEN}|${TELEGRAM_CHAT_ID}"
-
-    # Encrypt the Vault
-    HW_KEY=$(get_hw_key)
-    if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
-        echo -e "${GREEN}✅ Credentials encrypted and locked to this hardware.${NC}"
+    
+    if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
+        HW_KEY=$(get_hw_key)
+        if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
+            echo -e "${GREEN}✅ Credentials Encrypted (OpenSSL) and locked to this hardware.${NC}"
+        else
+            echo -e "${RED}❌ OpenSSL Encryption failed! Check openssl-util.${NC}"
+        fi
     else
-        echo -e "${RED}❌ Encryption failed! Check openssl-util.${NC}"
+        # Base64 Fallback
+        if echo -n "$VAULT_DATA" | base64 > "$VAULT_FILE"; then
+            echo -e "${YELLOW}✅ Credentials Encoded (Base64).${NC}"
+        else
+            echo -e "${RED}❌ Base64 Encoding failed!${NC}"
+        fi
     fi
 fi
 
-# --- 5. CORE SCRIPT GENERATION ---
+# --- 6. CORE SCRIPT GENERATION ---
 echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
 cat <<'EOF' > "$INSTALL_DIR/netwatchda.sh"
 #!/bin/sh
@@ -520,8 +903,17 @@ get_hw_key() {
 
 load_credentials() {
     if [ -f "$VAULT_FILE" ]; then
-        local key=$(get_hw_key)
-        local decrypted=$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "$key" -in "$VAULT_FILE" 2>/dev/null)
+        local decrypted=""
+        
+        # Check Encryption Method
+        if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
+            local key=$(get_hw_key)
+            decrypted=$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "$key" -in "$VAULT_FILE" 2>/dev/null)
+        else
+            # Default to Base64
+            decrypted=$(cat "$VAULT_FILE" | base64 -d 2>/dev/null)
+        fi
+        
         if [ -n "$decrypted" ]; then
             export DISCORD_WEBHOOK=$(echo "$decrypted" | cut -d'|' -f1)
             export DISCORD_USERID=$(echo "$decrypted" | cut -d'|' -f2)
@@ -725,7 +1117,8 @@ while true; do
 done
 EOF
 chmod +x "$INSTALL_DIR/netwatchda.sh"
-# --- 6. SERVICE SETUP (PROCD) ---
+
+# --- 7. SERVICE SETUP (PROCD) ---
 echo -e "\n${CYAN}⚙️  Configuring system service...${NC}"
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
@@ -791,88 +1184,94 @@ get_hw_key() {
     [ -z "\$cpu_serial" ] && cpu_serial="unknown_serial"
     local mac_addr=\$(cat /sys/class/net/eth0/address 2>/dev/null)
     [ -z "\$mac_addr" ] && mac_addr=\$(cat /sys/class/net/br-lan/address 2>/dev/null)
+    [ -z "\$mac_addr" ] && mac_addr="00:00:00:00:00:00"
     echo -n "\${seed}\${cpu_serial}\${mac_addr}" | openssl dgst -sha256 | awk '{print \$2}'
+}
+
+# Helper to Decrypt based on ENCRYPTION_METHOD
+get_decrypted_creds() {
+    local vault="$INSTALL_DIR/.vault.enc"
+    [ -f "\$vault" ] || return 1
+    
+    # Read settings to find encryption method
+    if [ -z "\$ENCRYPTION_METHOD" ]; then . "$INSTALL_DIR/nwda_settings.conf" 2>/dev/null; fi
+
+    local decrypted=""
+    if [ "\$ENCRYPTION_METHOD" = "OPENSSL" ]; then
+        local key=\$(get_hw_key)
+        decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
+    else
+        decrypted=\$(cat "\$vault" | base64 -d 2>/dev/null)
+    fi
+    echo "\$decrypted"
 }
 
 discord() {
     load_functions
-    local vault="$INSTALL_DIR/.vault.enc"
-    if [ -f "\$vault" ]; then
-         local key=\$(get_hw_key)
-         local decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
-         local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
-         
-         if [ -n "\$webhook" ]; then
-             echo "Sending Discord test..."
-             curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook"
-             echo "Sent."
-         else
-             echo "No Discord Webhook configured."
-         fi
+    local decrypted=\$(get_decrypted_creds)
+    local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
+    
+    if [ -n "\$webhook" ]; then
+        echo "Sending Discord test..."
+        curl -s -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook"
+        echo "Sent."
     else
-         echo "Vault not found."
+        echo "No Discord Webhook configured or vault locked."
     fi
 }
 
 telegram() {
     load_functions
-    local vault="$INSTALL_DIR/.vault.enc"
-    if [ -f "\$vault" ]; then
-         local key=\$(get_hw_key)
-         local decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
-         local token=\$(echo "\$decrypted" | cut -d'|' -f3)
-         local chat=\$(echo "\$decrypted" | cut -d'|' -f4)
-         
-         if [ -n "\$token" ]; then
-             echo "Sending Telegram test..."
-             curl -s -X POST "https://api.telegram.org/bot\$token/sendMessage" -d chat_id="\$chat" -d text="🛠️ Telegram Warning Test - \$ROUTER_NAME"
-             echo "Sent."
-         else
-             echo "No Telegram Token configured."
-         fi
+    local decrypted=\$(get_decrypted_creds)
+    local token=\$(echo "\$decrypted" | cut -d'|' -f3)
+    local chat=\$(echo "\$decrypted" | cut -d'|' -f4)
+    
+    if [ -n "\$token" ]; then
+        echo "Sending Telegram test..."
+        curl -s -X POST "https://api.telegram.org/bot\$token/sendMessage" -d chat_id="\$chat" -d text="🛠️ Telegram Warning Test - \$ROUTER_NAME"
+        echo "Sent."
+    else
+        echo "No Telegram Token configured or vault locked."
     fi
 }
 
 credentials() {
-    echo ""
-    echo -e "\033[1;33m🔐 Credential Manager\033[0m"
+    echo ""; echo -e "\033[1;33m🔐 Credential Manager\033[0m"
     echo "1. Change Discord Credentials"
     echo "2. Change Telegram Credentials"
     echo "3. Change Both"
-    printf "Choice [1-3]: "
-    read c_choice </dev/tty
+    printf "Choice [1-3]: "; read c_choice </dev/tty
     
-    # Decrypt existing first to preserve others
-    local vault="$INSTALL_DIR/.vault.enc"
-    local key=\$(get_hw_key)
-    local current=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
-    
+    load_functions
+    local current=\$(get_decrypted_creds)
     local d_hook=\$(echo "\$current" | cut -d'|' -f1)
     local d_uid=\$(echo "\$current" | cut -d'|' -f2)
     local t_tok=\$(echo "\$current" | cut -d'|' -f3)
     local t_chat=\$(echo "\$current" | cut -d'|' -f4)
     
     if [ "\$c_choice" = "1" ] || [ "\$c_choice" = "3" ]; then
-        printf "New Discord Webhook: "
-        read d_hook </dev/tty
-        printf "New Discord User ID: "
-        read d_uid </dev/tty
+        printf "New Discord Webhook: "; read d_hook </dev/tty
+        printf "New Discord User ID: "; read d_uid </dev/tty
     fi
-    
     if [ "\$c_choice" = "2" ] || [ "\$c_choice" = "3" ]; then
-        printf "New Telegram Token: "
-        read t_tok </dev/tty
-        printf "New Telegram Chat ID: "
-        read t_chat </dev/tty
+        printf "New Telegram Token: "; read t_tok </dev/tty
+        printf "New Telegram Chat ID: "; read t_chat </dev/tty
     fi
     
     local new_data="\${d_hook}|\${d_uid}|\${t_tok}|\${t_chat}"
-    if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then
-        echo -e "\033[1;32m✅ Credentials updated and re-encrypted.\033[0m"
-        /etc/init.d/netwatchda restart
+    local vault="$INSTALL_DIR/.vault.enc"
+    
+    if [ "\$ENCRYPTION_METHOD" = "OPENSSL" ]; then
+        local key=\$(get_hw_key)
+        if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then
+            echo -e "\033[1;32m✅ Updated (OpenSSL).\033[0m"
+        else echo -e "\033[1;31m❌ Failed.\033[0m"; fi
     else
-        echo -e "\033[1;31m❌ Encryption failed.\033[0m"
+        if echo -n "\$new_data" | base64 > "\$vault"; then
+            echo -e "\033[1;32m✅ Updated (Base64).\033[0m"
+        else echo -e "\033[1;31m❌ Failed.\033[0m"; fi
     fi
+    /etc/init.d/netwatchda restart
 }
 
 reload() {
@@ -942,7 +1341,7 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" enable >/dev/null 2>&1
 "$SERVICE_PATH" restart >/dev/null 2>&1
 
-# --- 7. FINAL SUCCESS & TEST NOTIFICATION ---
+# --- 8. FINAL SUCCESS & TEST NOTIFICATION ---
 # Manually send the final notification using current Installer variables
 # This avoids sourcing the infinite loop script.
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
@@ -964,8 +1363,7 @@ echo -e "${CYAN}📂 Folder:${NC} $INSTALL_DIR"
 echo -e "${GREEN}=======================================================${NC}"
 echo -e "\n${BOLD}Quick Commands:${NC}"
 echo -e "  Uninstall        : ${RED}/etc/init.d/netwatchda purge${NC}"
-echo -e "  Manage Creds     : ${YELLOW}/etc/init.d/netwatchda credentials${NC}"
 echo -e "  Edit Settings    : ${CYAN}$CONFIG_FILE${NC}"
-echo -e "  Edit IP List     : ${CYAN}$IP_LIST_FILE${NC}"
-echo -e "  Restart         :  ${YELLOW}/etc/init.d/netwatchda restart${NC}"
+echo -e "  Restart          : ${YELLOW}/etc/init.d/netwatchda restart${NC}"
+echo -e "  Manage Creds     : ${YELLOW}/etc/init.d/netwatchda credentials${NC}"
 echo ""
