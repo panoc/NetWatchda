@@ -97,7 +97,8 @@ wget --no-check-certificate -qO /tmp/install_netwatchda.sh "https://raw.githubus
 4. Select some basic settings.
 5. Set up the `procd` system service (autostart).
 
-<details>(strong>Complete File Structure</strong>
+<details>
+<summary><strong>Complete File Structure</strong></summary>
 
 After installation, the following files will exist:
 | File Path | Description |
@@ -267,6 +268,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
 
 
 
