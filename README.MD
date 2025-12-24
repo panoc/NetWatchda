@@ -92,18 +92,15 @@ The script depends on `openssl-util` and `curl` to function securely. The instal
 <details>
 <summary><strong>Complete File Structure</strong></summary>
 
-After installation, the following files will exist:
-| File Path | Description |
-| :--- | :--- |
-| /root/netwatchdta/netwatchdta.sh	| The core logic engine (Daemon). |
-| /root/netwatchdta/nwdta_settings.conf	| User configuration (Toggles & Intervals). |
-| /root/netwatchdta/nwdta_ips.conf	| The list of devices to monitor. |
-| /root/netwatchdta/.vault.enc	| Encrypted file containing Discord/Telegram tokens. |
-| /etc/init.d/netwatchdta	| The OpenWrt service management script. |
-| /tmp/netwatchdta/nwdta_uptime.log	| Human-readable event log (RAM-only). |
-| /tmp/netwatchdta/nwdta_ping.log	 | Detailed ping history (Optional, RAM-only). |
-| /tmp/netwatchdta/nwdta_silent_buffer	| Temporary storage for Silent Mode summaries. |
-</details>
+Depending on your OS, the files are installed in standard locations:
+
+| File Type | OpenWrt Path | Linux Path | Description |
+| --- | --- | --- | --- |
+| **Base Folder** | `/root/netwatchdta/` | `/opt/netwatchdta/` | Main installation directory. |
+| **Config** | `nwdta_settings.conf` | `nwdta_settings.conf` | User settings (Intervals, Toggles). |
+| **IP List** | `nwdta_ips.conf` | `nwdta_ips.conf` | List of devices to monitor. |
+| **Vault** | `.vault.enc` | `.vault.enc` | Encrypted tokens. |
+| **Logs** | `/tmp/netwatchdta/` | `/tmp/netwatchdta/` | RAM-based activity logs. |
 
 ---
 
