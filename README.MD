@@ -12,20 +12,20 @@ Designed for easy installation, reliability, minimal resource usage, and zero bl
 
 ## ✨ Key Features
 
-* **🧠 Smart RAM Detection**
-    * **Parallel Mode:** Automatically enables on routers with **≥ 256MB RAM** for ultra-fast, simultaneous pinging.
-    * **Sequential Mode:** Automatically enables on routers with **< 256MB RAM** to prevent system instability and OOM crashes.
-* **🔐 Military-Grade Security**
-    * Credentials are **never** stored in plain text.
-    * Uses **AES-256 Encryption (OpenSSL)** locked to your specific hardware signature (CPU Serial + MAC).
-    * Decryption happens once at boot, keeping CPU usage near zero during operation.
-* **📡 Dual-Stack Monitoring**
-    * **Internet Watchdog:** Monitors external IPs (default 1.1.1.1/8.8.8.8) to detect ISP outages.
-    * **Device Watchdog:** Monitors specific local IPs (servers, cameras, IoT) and alerts when they go offline.
 * **🔔 Rich Notifications**
     * Real-time alerts via **Discord** (Embeds) and **Telegram**.
     * **Silent Hours:** Pauses alerts during the night and sends a single summary in the morning.
     * **Heartbeat:** Optional "I'm alive" periodic check-ins.
+* **📡 Dual-Stack Monitoring**
+    * **Internet Watchdog:** Monitors external IPs (default 1.1.1.1/8.8.8.8) to detect ISP outages.
+    * **Device Watchdog:** Monitors specific local IPs (servers, cameras, IoT) and alerts when they go offline.
+* **🧠 Smart RAM Detection**
+    * **Parallel Mode:** Automatically enables on routers with **≥ 256MB RAM** for ultra-fast, simultaneous pinging.
+    * **Sequential Mode:** Automatically enables on routers with **< 256MB RAM** to prevent system instability and OOM crashes.
+* **🔐 OpenSSL Security**
+    * Credentials are **never** stored in plain text.
+    * Uses **AES-256 Encryption (OpenSSL)** locked to your specific hardware signature (CPU Serial + MAC).
+    * Decryption happens once at boot, keeping CPU usage near zero during operation.
 * **🛡️ Resilience**
     * **Offline Buffering:** If the internet cuts out, alerts are saved (up to 5KB) and sent immediately when connectivity is restored.
     * **Resource Guards:** Pauses monitoring if system CPU load is too high or RAM is critically low.
