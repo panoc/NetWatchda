@@ -216,7 +216,10 @@ If you prefer the web interface on OpenWrt, you can add control buttons to your 
 
 </details>
 
-<img src="https://www.google.com/search?q=images/custom-commands.png" width="300">
+![Custom Commands](images/custom-commands.png)
+</details>
+
+<img src="images/custom-commands.png" width="300">
 
 ---
 
