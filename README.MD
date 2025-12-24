@@ -169,10 +169,8 @@ Format: IP_ADDRESS @ NAME
 192.168.1.10   @ Home Server
 192.168.1.50   @ CCTV Camera
 10.0.0.5       @ IoT Gateway
-</details>
-
-
 ```
+</details>
 
 **Note:** After editing files, restart the service:
 
@@ -273,6 +271,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
 
 
 
