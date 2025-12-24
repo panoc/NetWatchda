@@ -207,6 +207,15 @@ If you prefer the web interface, you can add control buttons to your router's da
 | **Restart Service** | `/etc/init.d/netwatchdta restart` |
 
 ![Custom Commands](images/custom-commands.png)
+
+<details>
+<summary>🔍 Click to zoom screenshot</summary>
+
+![Custom Commands](images/custom-commands.png)
+</details>
+
+<img src="images/custom-commands.png" width="200">
+
 ---
 
 ## 📊 Resource Usage
