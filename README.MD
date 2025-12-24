@@ -218,11 +218,6 @@ top -b -n 1 | grep netwatchdta
 
 ```
 
-* **Idle:** ~1.2 MB - 2 MB
-* **Peak (During Alert):** ~4 MB - 6 MB
-
----
-
 ### 📊 RAM Usage Scaling (Stress Test: 50 Simultaneous Events)
 
 The following table illustrates how `netwatchdta` manages memory during a "mass event" (e.g., a network switch failure causing 50 devices to go offline instantly).
