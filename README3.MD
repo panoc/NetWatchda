@@ -60,7 +60,7 @@ Phase 1: Create the Discord Webhook
 ```
 ### Telegram Configuration
 
-### **Phase 1. Create the Bot (Get the Token)**
+### Phase 1. Create the Bot (Get the Token)
 ```
 1. Open Telegram and search for @BotFather.
 2. Start a chat and send the command: /newbot
@@ -69,7 +69,7 @@ Phase 1: Create the Discord Webhook
 5. Save this! This is your TELE_BOT_TOKEN.
 6. *Keep this toker safe!*
 
-### **Phase 2. Get Your Chat ID**
+### Phase 2. Get Your Chat ID
 The bot needs to know who to send the messages to.
 
 1. Search for your new bot by its username and press Start.
@@ -223,6 +223,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 
 ```
+
 
 
 
