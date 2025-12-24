@@ -121,7 +121,8 @@ Configuration files are located in `/root/netwatchda/`.
 
 ### 1. `nwda_settings.conf`
 
-Controls the behavior of the daemon.
+<details>
+<summary><strong>Controls the behavior of the daemon.</summary></strong>
 
 | Setting | Description |
 | --- | --- |
@@ -159,7 +160,8 @@ Controls the behavior of the daemon.
 
 ### 2. `nwda_ips.conf`
 
-List the local devices you want to monitor.
+<details>
+<summary><strong>List the local devices you want to monitor.</summary></strong>
 
 ```ini
 # Format: IP_ADDRESS @ NAME
@@ -268,6 +270,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
 
 
 
