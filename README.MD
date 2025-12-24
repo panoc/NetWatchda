@@ -8,6 +8,11 @@ It features **smart resource management** that automatically adjusts its executi
 
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg) ![Platform](https://img.shields.io/badge/platform-OpenWrt-red.svg) ![Version](https://img.shields.io/badge/version-1.1-green.svg)
 
+![Monitoring](https://img.shields.io/badge/Status-Vigilant-success?style=for-the-badge&logo=eye&logoColor=white)
+
+Connectivity Badge: ![Network](https://img.shields.io/badge/Network-Monitoring-blue?style=for-the-badge&logo=wi-fi&logoColor=white)
+
+OpenWrt Specific: ![Platform](https://img.shields.io/badge/Platform-OpenWrt-short?style=for-the-badge&logo=openwrt&logoColor=white&color=1272ba)
 ---
 
 ## ✨ Key Features
@@ -233,6 +238,7 @@ You will be prompted to either remove everything (including dependencies like `o
 
 Copyright (C) 2025 panoc.
 This project is licensed under the **GNU General Public License v3.0**.
+
 
 
 
