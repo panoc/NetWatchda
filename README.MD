@@ -207,7 +207,7 @@ If you prefer the web interface, you can add control buttons to your router's da
 | **Restart Service** | `/etc/init.d/netwatchdta restart` |
 
 <details>
-<summary><strong>🔍 Click to zoom image(/strong></summary>
+<summary><strong>🔍 Click to zoom image</strong></summary>
 
 ![Custom Commands](images/custom-commands.png)
 </details>
