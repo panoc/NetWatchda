@@ -250,7 +250,7 @@ OR
 Use the 1-line uninstaller:
 
 ```sh
-wget --no-check-certificate -qO /tmp/uninstall_netwatchda.sh "https://raw.githubusercontent.com/panoc/NetWatchda/refs/heads/main/uninstall_netwatchda.sh" && sh /tmp/uninstall_netwatchda.sh
+wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/OpenWRT/uninstall_netwatchdta_wrt.sh" && sh /tmp/uninstall_netwatchdta_wrt.sh
 
 ```
 
