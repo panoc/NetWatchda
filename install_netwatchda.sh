@@ -785,10 +785,22 @@ flush_buffer() {
     fi
 }
 
+# --- STARTUP SEQUENCE ---
+# 1. Load Config (to get ENCRYPTION_METHOD)
+load_config
+# 2. Decrypt Credentials ONCE (Optimized)
+load_credentials
+if [ $? -eq 0 ]; then
+    log_msg "[SYSTEM] Credentials loaded and decrypted successfully." "UPTIME"
+else
+    log_msg "[WARNING] Could not decrypt credentials or vault missing." "UPTIME"
+fi
+
 # --- MAIN LOGIC LOOP ---
 while true; do
+    # Reload config in loop to allow changing intervals/toggles on the fly
+    # But we DO NOT reload credentials here to save CPU
     load_config
-    load_credentials # Load creds at start of loop
     
     NOW_HUMAN=$(date '+%b %d %H:%M:%S')
     NOW_SEC=$(date +%s)
