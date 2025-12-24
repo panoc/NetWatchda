@@ -1,9 +1,9 @@
-# netwatchda ![](https://icongr.am/octicons/broadcast.svg?size=24&color=0366d6)
+# netwatchdta ![](https://icongr.am/octicons/broadcast.svg?size=24&color=0366d6)
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg) ![Platform](https://img.shields.io/badge/platform-OpenWrt-red.svg) ![Network](https://img.shields.io/badge/Network-Monitoring-orange.svg) ![Version](https://img.shields.io/badge/version-1.1-green.svg)
 
 ### Advanced Network Monitoring & Alerting for OpenWrt
 
-**netwatchda** is a lightweight, POSIX-compliant shell daemon designed specifically for OpenWrt routers. It bridges the gap between your network hardware and your mobile device by sending real-time status **notifications** via **Discord** and/or **Telegram**.
+**netwatchdta** is a lightweight, POSIX-compliant shell daemon designed specifically for OpenWrt routers. It bridges the gap between your network hardware and your mobile device by sending real-time status **notifications** via **Discord** and/or **Telegram**.
 
 Designed for easy installation, reliability, minimal resource usage, and zero bloat. It features **smart resource management** that automatically adjusts its execution strategy based on your router's available RAM and CPU load, making it reliable on everything from tiny travel routers to enterprise gateways.
 
@@ -54,7 +54,7 @@ To receive alerts, you need a Webhook URL. If you want mentions (pings), you als
 #### Phase 1: Create the Bot (Get the Token)
 1. Open Telegram and search for `@BotFather`.
 2. Start a chat and send the command: `/newbot`
-3. Follow the instructions to give your bot a name (e.g., MyHomeMonitor) and a username (must end in "bot", e.g., nwda_router_bot).
+3. Follow the instructions to give your bot a name (e.g., MyHomeMonitor) and a username (must end in "bot", e.g., nwdta_router_bot).
 4. BotFather will send you a message containing your HTTP API Token. It looks like this: `123456789:ABCdefGhIJKlmNoPQRstUV`
 5. Save this! This is your `TELE_BOT_TOKEN`.
 6. *Keep this token safe!*
@@ -72,7 +72,7 @@ The bot needs to know who to send the messages to.
 > **Note:** If you are using a Group, the Chat ID will usually start with a minus sign (e.g., -100123456789).
 
 > [!TIP]
-> The installer will ask for these during setup. If you change them later, use the secure command: `/etc/init.d/netwatchda credentials`
+> The installer will ask for these during setup. If you change them later, use the secure command: `/etc/init.d/netwatchdta credentials`
 
 ---
 
@@ -102,23 +102,23 @@ wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubu
 After installation, the following files will exist:
 | File Path | Description |
 | :--- | :--- |
-| /root/netwatchda/netwatchda.sh	| The core logic engine (Daemon). |
-| /root/netwatchda/nwda_settings.conf	| User configuration (Toggles & Intervals). |
-| /root/netwatchda/nwda_ips.conf	| The list of devices to monitor. |
-| /root/netwatchda/.vault.enc	| Encrypted file containing Discord/Telegram tokens. |
-| /etc/init.d/netwatchda	| The OpenWrt service management script. |
-| /tmp/netwatchda/nwda_uptime.log	| Human-readable event log (RAM-only). |
-| /tmp/netwatchda/nwda_ping.log	 | Detailed ping history (Optional, RAM-only). |
-| /tmp/netwatchda/nwda_silent_buffer	| Temporary storage for Silent Mode summaries. |
+| /root/netwatchdta/netwatchdta.sh	| The core logic engine (Daemon). |
+| /root/netwatchdta/nwdta_settings.conf	| User configuration (Toggles & Intervals). |
+| /root/netwatchdta/nwdta_ips.conf	| The list of devices to monitor. |
+| /root/netwatchdta/.vault.enc	| Encrypted file containing Discord/Telegram tokens. |
+| /etc/init.d/netwatchdta	| The OpenWrt service management script. |
+| /tmp/netwatchdta/nwdta_uptime.log	| Human-readable event log (RAM-only). |
+| /tmp/netwatchdta/nwdta_ping.log	 | Detailed ping history (Optional, RAM-only). |
+| /tmp/netwatchdta/nwdta_silent_buffer	| Temporary storage for Silent Mode summaries. |
 </details>
 
 ---
 
 ## ⚙️ Configuration
 
-Configuration files are located in `/root/netwatchda/`.
+Configuration files are located in `/root/netwatchdta/`.
 
-### 1. `nwda_settings.conf`
+### 1. `nwdta_settings.conf`
 
 <details>
 <summary><strong>Controls the behavior of the daemon.</summary></strong>
@@ -150,11 +150,11 @@ Configuration files are located in `/root/netwatchda/`.
 > 
 > If you enable Silent Hours (e.g., 23:00 to 07:00):
 > 1. Individual alerts are **paused**.
-> 2. Events are saved to a temporary RAM buffer (`nwda_silent_buffer`).
+> 2. Events are saved to a temporary RAM buffer (`nwdta_silent_buffer`).
 > 3. At 07:00, a single **Summary Message** is sent containing all overnight events.
 </details>
 
-### 2. `nwda_ips.conf`
+### 2. `nwdta_ips.conf`
 
 <details>
 <summary><strong>List the local devices you want to monitor.</strong></summary>
@@ -170,7 +170,7 @@ Format: IP_ADDRESS @ NAME
 **Note:** After editing files, restart the service:
 
 ```sh
-/etc/init.d/netwatchda restart
+/etc/init.d/netwatchdta restart
 
 ```
 
@@ -178,18 +178,18 @@ Format: IP_ADDRESS @ NAME
 
 ## 🛠️ 1 Management via Terminal
 
-`netwatchda` installs a comprehensive system service.
+`netwatchdta` installs a comprehensive system service.
 
 | Command | Action |
 | --- | --- |
-| `/etc/init.d/netwatchda start` | Start the monitoring service. |
-| `/etc/init.d/netwatchda stop` | Stop the service. |
-| `/etc/init.d/netwatchda status` | Check if running and view PID. |
-| `/etc/init.d/netwatchda logs` | View the last 20 lines of the activity log. |
-| `/etc/init.d/netwatchda credentials` | **Interactive wizard** to update Discord/Telegram keys securely. |
-| `/etc/init.d/netwatchda discord` | Send a test notification to Discord. |
-| `/etc/init.d/netwatchda telegram` | Send a test notification to Telegram. |
-| `/etc/init.d/netwatchda purge` | **Uninstall:** Removes the service, files, and optionally dependencies. |
+| `/etc/init.d/netwatchdta start` | Start the monitoring service. |
+| `/etc/init.d/netwatchdta stop` | Stop the service. |
+| `/etc/init.d/netwatchdta status` | Check if running and view PID. |
+| `/etc/init.d/netwatchdta logs` | View the last 20 lines of the activity log. |
+| `/etc/init.d/netwatchdta credentials` | **Interactive wizard** to update Discord/Telegram keys securely. |
+| `/etc/init.d/netwatchdta discord` | Send a test notification to Discord. |
+| `/etc/init.d/netwatchdta telegram` | Send a test notification to Telegram. |
+| `/etc/init.d/netwatchdta purge` | **Uninstall:** Removes the service, files, and optionally dependencies. |
 
 ---
 
@@ -202,18 +202,18 @@ If you prefer the web interface, you can add control buttons to your router's da
 
 | Button Name | Command |
 | --- | --- |
-| **Check Status** | `/etc/init.d/netwatchda status` |
-| **View Activity Logs** | `/etc/init.d/netwatchda logs` |
-| **Restart Service** | `/etc/init.d/netwatchda restart` |
+| **Check Status** | `/etc/init.d/netwatchdta status` |
+| **View Activity Logs** | `/etc/init.d/netwatchdta logs` |
+| **Restart Service** | `/etc/init.d/netwatchdta restart` |
 
 ---
 
 ## 📊 Resource Usage
 
-To see how much RAM `netwatchda` is using:
+To see how much RAM `netwatchdta` is using:
 
 ```sh
-top -b -n 1 | grep netwatchda
+top -b -n 1 | grep netwatchdta
 
 ```
 
@@ -224,7 +224,7 @@ top -b -n 1 | grep netwatchda
 
 ### 📊 RAM Usage Scaling (Stress Test: 50 Simultaneous Events)
 
-The following table illustrates how `netwatchda` manages memory during a "mass event" (e.g., a network switch failure causing 50 devices to go offline instantly).
+The following table illustrates how `netwatchdta` manages memory during a "mass event" (e.g., a network switch failure causing 50 devices to go offline instantly).
 
 | Scenario | Sequential Mode (< 256MB RAM) | Parallel Mode (≥ 256MB RAM) |
 | --- | --- | --- |
@@ -234,14 +234,14 @@ The following table illustrates how `netwatchda` manages memory during a "mass e
 | **Flushing 50 Buffered Alerts** | **~3.5 MB** (Queue: 1 at a time) | **~3.5 MB** (Queue: 1 at a time) |
 
 > **Note:** Parallel Mode trades spare RAM for speed. The installer automatically restricts Parallel Mode to routers with sufficient memory to absorb these spikes safely.
-> If you don't have many devices to monitor you can safely use Parallel Mode on less powerful router by adjusting **EXEC_METHOD** in **nwda_settings.conf**.
+> If you don't have many devices to monitor you can safely use Parallel Mode on less powerful router by adjusting **EXEC_METHOD** in **nwdta_settings.conf**.
 
 ## 🗑️ Uninstallation
 
-To completely remove `netwatchda`, use the built-in purge command:
+To completely remove `netwatchdta`, use the built-in purge command:
 
 ```sh
-/etc/init.d/netwatchda purge
+/etc/init.d/netwatchdta purge
 
 ```
 
@@ -262,27 +262,3 @@ You will be prompted to either remove everything (including dependencies like `o
 
 Copyright (C) 2025 panoc.
 This project is licensed under the **GNU General Public License v3.0**.
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
