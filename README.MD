@@ -75,7 +75,7 @@ You will need a **Discord Webhook** or **Telegram Bot Token**.
 Run this command in your router terminal:
 
 ```sh
-wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/OpenWRT/install_netwatchdta_wrt.sh" && sh /tmp/install_netwatchdta.sh
+wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/OpenWrt/install_netwatchdta_wrt.sh" && sh /tmp/install_netwatchdta.sh
 
 ```
 
@@ -250,7 +250,7 @@ To completely remove `netwatchdta`, use the built-in purge command shown in the 
 ### OpenWrt
 
 ```sh
-wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/OpenWRT/uninstall_netwatchdta_wrt.sh" && sh /tmp/uninstall_netwatchdta_wrt.sh
+wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/OpenWrt/uninstall_netwatchdta_wrt.sh" && sh /tmp/uninstall_netwatchdta_wrt.sh
 
 ```
 
