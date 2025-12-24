@@ -113,7 +113,7 @@ Depending on your OS, the files are installed in standard locations:
 
 ---
 
-## ⚙️ Configuration Guide
+## 🛠️ Management & Commands
 
 Configuration files are located in the Base Folder (see above).
 
@@ -181,8 +181,6 @@ Configuration files are located in the Base Folder (see above).
 *After editing files, always restart the service.*
 
 ---
-
-## 🛠️ Management & Commands
 
 `netwatchdta` installs a comprehensive system service.
 
