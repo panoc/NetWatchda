@@ -1,12 +1,43 @@
+It is indeed a very strong README. It’s comprehensive, uses badges well, and the tables are excellent for readability.
+
+However, I have found a few **typos** (some quite visible) and some **Markdown syntax errors** that will break the rendering on GitHub.
+
+Here are the specific fixes and a polished version below.
+
+### 1. Critical Fixes (Typos & Syntax)
+
+* **The `wget` Link Error:** In your installation code block, you have markdown syntax `[url](url)` inside the code block. GitHub will render this literally as text, not a link. It should just be the raw URL.
+* **"Discrod":** Title typo in the configuration section.
+* **"tt features":** In the intro paragraph (`It features`).
+* **"numner" & "toker":** Typos in the credentials section (`number` and `token`).
+
+### 2. Formatting Suggestion (Readability)
+
+Currently, you have the Discord and Telegram instructions wrapped in code blocks (`````). This forces the text to be monospaced and **prevents text wrapping**. On mobile phones or smaller screens, users will have to scroll horizontally to read the instructions, which is a bad user experience.
+
+**Suggestion:** Change those instruction blocks to standard Markdown Numbered Lists.
+
+### 3. Diagram Suggestion
+
+Since your script has logic regarding RAM detection (Parallel vs. Sequential) and Offline Buffering, a visual representation of this logic would help users understand *why* this script is "smart" compared to a simple cron job.
+
+---
+
+### The Polished Code
+
+Here is the corrected Markdown. You can copy-paste this directly.
+
+```markdown
 # netwatchda ![](https://icongr.am/octicons/broadcast.svg?size=24&color=0366d6)
 
 ### Advanced Network Monitoring & Alerting for OpenWrt
 
 **netwatchda** is a lightweight, POSIX-compliant shell daemon designed specifically for OpenWrt routers. It bridges the gap between your network hardware and your mobile device by sending real-time status **notifications** via **Discord** or **Telegram**.
 
-Designed for easy installation, reliability, minimal resource usage, and zero bloat tt features **smart resource management** that automatically adjusts its execution strategy based on your router's available RAM and CPU load, making it reliable on everything from tiny travel routers to enterprise gateways.
+Designed for easy installation, reliability, minimal resource usage, and zero bloat. It features **smart resource management** that automatically adjusts its execution strategy based on your router's available RAM and CPU load, making it reliable on everything from tiny travel routers to enterprise gateways.
 
 ![License](https://img.shields.io/badge/license-GPLv3-blue.svg) ![Platform](https://img.shields.io/badge/platform-OpenWrt-red.svg) ![Network](https://img.shields.io/badge/Network-Monitoring-orange.svg) ![Version](https://img.shields.io/badge/version-1.1-green.svg)
+
 ---
 
 ## ✨ Key Features
@@ -33,48 +64,43 @@ Designed for easy installation, reliability, minimal resource usage, and zero bl
 
 ## 🔔 Discord and Telegram Configuration Guide
 
-### Discrod Configuration
+### Discord Configuration
 
 To receive alerts, you need a Webhook URL. If you want mentions (pings), you also need your User ID.
-```
-Phase 1: Create the Discord Webhook
-1.  Open Discord and right-click your server's text channel (e.g., `#logs`).
-2.  Select **Edit Channel** -> **Integrations** -> **Webhooks**.
-3.  Click **New Webhook**, name it (e.g., "Router Watchdog"), and copy the **Webhook URL**.
-4.  *Keep this URL safe!*
 
-### **Phase 2: Get your User ID (Optional)**
-1.  Go to **User Settings** -> **Advanced** and enable **Developer Mode**.
-2.  Right-click your own username in any chat and select **Copy User ID**.
-3.  It will be a long number (e.g., `184000000000000000`).
-4.  *Keep this numner safe!*
+#### Phase 1: Create the Discord Webhook
+1. Open Discord and right-click your server's text channel (e.g., `#logs`).
+2. Select **Edit Channel** -> **Integrations** -> **Webhooks**.
+3. Click **New Webhook**, name it (e.g., "Router Watchdog"), and copy the **Webhook URL**.
+4. *Keep this URL safe!*
 
-```
+#### Phase 2: Get your User ID (Optional)
+1. Go to **User Settings** -> **Advanced** and enable **Developer Mode**.
+2. Right-click your own username in any chat and select **Copy User ID**.
+3. It will be a long number (e.g., `184000000000000000`).
+4. *Keep this number safe!*
+
 ### Telegram Configuration
 
-```
-Phase 1. Create the Bot (Get the Token)
-
-1. Open Telegram and search for @BotFather.
-2. Start a chat and send the command: /newbot
+#### Phase 1: Create the Bot (Get the Token)
+1. Open Telegram and search for `@BotFather`.
+2. Start a chat and send the command: `/newbot`
 3. Follow the instructions to give your bot a name (e.g., MyHomeMonitor) and a username (must end in "bot", e.g., nwda_router_bot).
-4. BotFather will send you a message containing your HTTP API Token. It looks like this: 123456789:ABCdefGhIJKlmNoPQRstUV
-5. Save this! This is your TELE_BOT_TOKEN.
-6. *Keep this toker safe!*
+4. BotFather will send you a message containing your HTTP API Token. It looks like this: `123456789:ABCdefGhIJKlmNoPQRstUV`
+5. Save this! This is your `TELE_BOT_TOKEN`.
+6. *Keep this token safe!*
 
-Phase 2. Get Your Chat ID
+#### Phase 2: Get Your Chat ID
 The bot needs to know who to send the messages to.
-
-1. Search for your new bot by its username and press Start.
+1. Search for your new bot by its username and press **Start**.
 2. Send a random message to the bot (like "Hello").
-3. Now, in your web browser, go to the following URL (replace <YOUR_TOKEN> with the token you got from BotFather): https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates
-4. Look for the part of the text that says "chat":{"id":XXXXXXXXX.
-5. The number (usually 9 or 10 digits) is your TELE_CHAT_ID.
-6. *Keep this numner safe!*
+3. Now, in your web browser, go to the following URL (replace `<YOUR_TOKEN>` with the token you got from BotFather):
+   `https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates`
+4. Look for the part of the text that says `"chat":{"id":XXXXXXXXX`.
+5. The number (usually 9 or 10 digits) is your `TELE_CHAT_ID`.
+6. *Keep this number safe!*
 
-**Note:** 
-If you are using a Group, the Chat ID will usually start with a minus sign (e.g., -100123456789).
-```
+> **Note:** If you are using a Group, the Chat ID will usually start with a minus sign (e.g., -100123456789).
 
 > [!TIP]
 > The installer will ask for these during setup. If you change them later, use the secure command: `/etc/init.d/netwatchda credentials`
@@ -89,7 +115,7 @@ The script depends on `openssl-util` and `curl` to function securely. The instal
 **Run this command in your OpenWrt terminal:**
 
 ```sh
-wget --no-check-certificate -qO /tmp/install_netwatchda.sh "[https://raw.githubusercontent.com/panoc/NetWatchda/refs/heads/main/install_netwatchda.sh](https://raw.githubusercontent.com/panoc/NetWatchda/refs/heads/main/install_netwatchda.sh)" && sh /tmp/install_netwatchda.sh
+wget --no-check-certificate -qO /tmp/install_netwatchda.sh "https://raw.githubusercontent.com/panoc/NetWatchda/refs/heads/main/install_netwatchda.sh" && sh /tmp/install_netwatchda.sh
 
 ```
 
@@ -135,10 +161,14 @@ Controls the behavior of the daemon.
 
 > [!TIP]
 > ### Understanding "Silent Hours"
+> 
+> 
 > If you enable Silent Hours (e.g., 23:00 to 07:00):
 > 1. Individual alerts are **paused**.
->2. Events are saved to a temporary RAM buffer (`nwda_silent_buffer`).
+> 2. Events are saved to a temporary RAM buffer (`nwda_silent_buffer`).
 > 3. At 07:00, a single **Summary Message** is sent containing all overnight events.
+> 
+> 
 
 ### 2. `nwda_ips.conf`
 
@@ -146,9 +176,9 @@ List the local devices you want to monitor.
 
 ```ini
 # Format: IP_ADDRESS @ NAME
-192.168.1.10  @ Home Server
-192.168.1.50  @ CCTV Camera
-10.0.0.5      @ IoT Gateway
+192.168.1.10   @ Home Server
+192.168.1.50   @ CCTV Camera
+10.0.0.5       @ IoT Gateway
 
 ```
 
@@ -191,7 +221,6 @@ If you prefer the web interface, you can add control buttons to your router's da
 | **View Activity Logs** | `/etc/init.d/netwatchda logs` |
 | **Restart Service** | `/etc/init.d/netwatchda restart` |
 
-![Alt text](./images/custom-commands.png)
 ---
 
 ## 📊 Resource Usage
@@ -202,8 +231,10 @@ To see how much RAM `netwatchda` is using:
 top -b -n 1 | grep netwatchda
 
 ```
+
 * **Idle:** ~1.2 MB - 2 MB
 * **Peak (During Alert):** ~4 MB - 6 MB
+
 ---
 
 ### 📊 RAM Usage Scaling (Stress Test: 50 Simultaneous Events)
@@ -211,7 +242,7 @@ top -b -n 1 | grep netwatchda
 The following table illustrates how `netwatchda` manages memory during a "mass event" (e.g., a network switch failure causing 50 devices to go offline instantly).
 
 | Scenario | Sequential Mode (< 256MB RAM) | Parallel Mode (≥ 256MB RAM) |
-| :--- | :--- | :--- |
+| --- | --- | --- |
 | **50 Devices Idle (Pinging)** | ~2 MB (Total) | ~4 MB (Total) |
 | **50 Devices Down (Buffering)** | ~2 MB (Total) | ~5 MB (Total) |
 | **50 Devices Down (Sending Alerts)** | **~3.5 MB** (Queue: 1 at a time) | **~75 MB Spike** (Concurrency: 50 at once) |
@@ -227,14 +258,16 @@ To completely remove `netwatchda`, use the built-in purge command:
 /etc/init.d/netwatchda purge
 
 ```
+
 OR
 
-by the 1 line unistaller:
+Use the 1-line uninstaller:
 
 ```sh
 wget --no-check-certificate -qO /tmp/uninstall_netwatchda.sh "https://raw.githubusercontent.com/panoc/NetWatchda/refs/heads/main/uninstall_netwatchda.sh" && sh /tmp/uninstall_netwatchda.sh
 
 ```
+
 You will be prompted to either remove everything (including dependencies like `openssl-util`) or keep your configuration files for a future reinstall.
 
 ---
@@ -244,17 +277,6 @@ You will be prompted to either remove everything (including dependencies like `o
 Copyright (C) 2025 panoc.
 This project is licensed under the **GNU General Public License v3.0**.
 
+```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+```
