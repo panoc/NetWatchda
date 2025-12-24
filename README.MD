@@ -212,7 +212,7 @@ If you prefer the web interface, you can add control buttons to your router's da
 ![Custom Commands](images/custom-commands.png)
 </details>
 
-<img src="images/custom-commands.png" width="200">
+<img src="images/custom-commands.png" width="300">
 
 ---
 
