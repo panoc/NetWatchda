@@ -24,7 +24,7 @@ Designed for easy installation, reliability, minimal resource usage, and zero bl
     * **Sequential Mode:** Automatically enables on routers with **< 256MB RAM** to prevent system instability and OOM crashes.
 * **🔐 OpenSSL Security**
     * Credentials are **never** stored in plain text.
-    * Uses **AES-256 Encryption (OpenSSL)** locked to your specific hardware signature (CPU Serial + MAC).
+    * Uses **AES-256 Encryption (OpenSSL)** locked to your specific hardware signature.
     * Decryption happens once at boot, keeping CPU usage near zero during operation.
 * **🛡️ Resilience**
     * **Offline Buffering:** If the internet cuts out, alerts are saved (up to 5KB) and sent immediately when connectivity is restored.
