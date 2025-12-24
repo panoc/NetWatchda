@@ -33,7 +33,6 @@ WHITE='\033[1;37m'  # Bold White (High Contrast)
 
 # Function: ask_yn
 # Purpose:  Forces the user to answer 'y' or 'n'. Ignores all other keys.
-# Usage:    ask_yn "Question Text"
 ask_yn() {
     local prompt="$1"
     while true; do
@@ -57,7 +56,6 @@ ask_yn() {
 
 # Function: ask_opt
 # Purpose:  Forces the user to select a number between 1 and MAX.
-# Usage:    ask_opt "Prompt Text" "Max Option Number"
 ask_opt() {
     local prompt="$1"
     local max="$2"
@@ -77,7 +75,7 @@ ask_opt() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} v1.3 (by ${BOLD}panoc${NC})"
+echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} v1.5 (by ${BOLD}panoc${NC})"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -155,14 +153,12 @@ if [ -n "$MISSING_DEPS" ]; then
     else
         echo -e "${GREEN}✅ Sufficient Flash space found: $((FREE_FLASH_KB / 1024))MB available.${NC}"
         
-        # Ask User Permission
         ask_yn "❓ Download missing dependencies?"
         if [ "$ANSWER_YN" = "y" ]; then
              echo -e "${YELLOW}📥 Updating package lists...${NC}"
              opkg update --no-check-certificate > /dev/null 2>&1
              
              echo -e "${YELLOW}📥 Installing:$MISSING_DEPS...${NC}"
-             # Install without output unless error
              opkg install --no-check-certificate $MISSING_DEPS > /tmp/nwda_install_err.log 2>&1
              
              if [ $? -ne 0 ]; then
@@ -231,14 +227,12 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
             break
         fi
         
-        # User said YES
         DISCORD_ENABLE_VAL="YES"
         printf "${BOLD}   > Enter Discord Webhook URL: ${NC}"
         read DISCORD_WEBHOOK </dev/tty
         printf "${BOLD}   > Enter Discord User ID (for @mentions): ${NC}"
         read DISCORD_USERID </dev/tty
         
-        # Test Loop
         ask_yn "   ❓ Send test notification to Discord now?"
         if [ "$ANSWER_YN" = "y" ]; then
              echo -e "${YELLOW}   🧪 Sending Discord test...${NC}"
@@ -256,11 +250,8 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
                  ask_opt "   Choice" "2"
                  if [ "$ANSWER_OPT" = "2" ]; then
                      DISCORD_ENABLE_VAL="NO"
-                     DISCORD_WEBHOOK=""
-                     DISCORD_USERID=""
                      break
                  fi
-                 # Loop continues (Retry credentials)
              fi
         else
             break
@@ -279,14 +270,12 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
             break
         fi
         
-        # User said YES
         TELEGRAM_ENABLE_VAL="YES"
         printf "${BOLD}   > Enter Telegram Bot Token: ${NC}"
         read TELEGRAM_BOT_TOKEN </dev/tty
         printf "${BOLD}   > Enter Telegram Chat ID: ${NC}"
         read TELEGRAM_CHAT_ID </dev/tty
         
-        # Test Loop
         ask_yn "   ❓ Send test notification to Telegram now?"
         if [ "$ANSWER_YN" = "y" ]; then
             echo -e "${YELLOW}   🧪 Sending Telegram test...${NC}"
@@ -304,21 +293,18 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
                 ask_opt "   Choice" "2"
                 if [ "$ANSWER_OPT" = "2" ]; then
                     TELEGRAM_ENABLE_VAL="NO"
-                    TELEGRAM_BOT_TOKEN=""
-                    TELEGRAM_CHAT_ID=""
                     break
                 fi
-                # Loop continues
             fi
         else
             break
         fi
     done
     
-    # 3d. Summary Display
+    # 3d. Summary Display (Updated Formatting)
     echo -e "\n${BOLD}${WHITE}Selected Notification Strategy:${NC}"
     if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
-        echo -e "   • ${BOLD}${WHITE}BOTH (Redundant)${NC}"
+        echo -e "   • ${BOLD}${WHITE}BOTH${NC}"
     elif [ "$DISCORD_ENABLE_VAL" = "YES" ]; then
          echo -e "   • ${BOLD}${WHITE}Discord Only${NC}"
     elif [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
@@ -357,11 +343,12 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         done
     fi
     
-    # 3f. Heartbeat Logic
+    # 3f. Heartbeat Logic (Updated with Start Hour)
     HB_VAL="NO"
     HB_SEC="86400"
     HB_MENTION="NO"
     HB_TARGET="BOTH"
+    HB_START_HOUR="12"
     
     echo -e "\n${BLUE}--- Heartbeat Settings ---${NC}"
     ask_yn "💓 Enable Heartbeat (System check-in)?"
@@ -375,6 +362,17 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         else
              HB_SEC=86400 # Default fallback
         fi
+
+        # New: Ask for Start Hour
+        while :; do
+            printf "${BOLD}   > Start Hour (0-23) [Default 12]: ${NC}"
+            read HB_START_HOUR </dev/tty
+            if [ -z "$HB_START_HOUR" ]; then HB_START_HOUR="12"; break; fi
+            if echo "$HB_START_HOUR" | grep -qE '^[0-9]+$' && [ "$HB_START_HOUR" -ge 0 ] && [ "$HB_START_HOUR" -le 23 ]; then
+                break
+            fi
+            echo -e "${RED}   ❌ Invalid hour.${NC}"
+        done
         
         ask_yn "   > Mention in Heartbeat?"
         if [ "$ANSWER_YN" = "y" ]; then
@@ -404,9 +402,9 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
 
     # 3g. Monitoring Mode Selection
     echo -e "\n${BLUE}--- Monitoring Mode ---${NC}"
-    echo -e "   1. ${BOLD}${WHITE}Both: Full monitoring (Default)${NC}"
-    echo -e "   2. ${BOLD}${WHITE}Device Connectivity only: Pings local network${NC}"
-    echo -e "   3. ${BOLD}${WHITE}Internet Connectivity only: Pings external IP${NC}"
+    echo -e "   1. ${BOLD}${WHITE}Both (Default)${NC}"
+    echo -e "   2. ${BOLD}${WHITE}Device Connectivity only${NC}"
+    echo -e "   3. ${BOLD}${WHITE}Internet Connectivity only${NC}"
     
     ask_opt "Enter choice" "3"
 
@@ -415,35 +413,37 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         3) EXT_VAL="YES"; DEV_VAL="NO"  ;;
         *) EXT_VAL="YES"; DEV_VAL="YES" ;;
     esac
-# ==============================================================================
-    #  STEP 4: GENERATE CONFIGURATION FILES
+
+    # ==============================================================================
+    #  STEP 4: GENERATE CONFIGURATION FILES (UPDATED FORMAT)
     # ==============================================================================
     cat <<EOF > "$CONFIG_FILE"
 # nwda_settings.conf - Configuration for netwatchda
-# Note: Credentials are stored in .vault.enc (Encrypted)
+# Note: Credentials are stored in .vault.enc (Method: OPENSSL)
 ROUTER_NAME="$router_name_input"
-EXEC_METHOD="$AUTO_EXEC_METHOD" # 1 = Parallel (Fast, High RAM > 256MB), 2 = Sequential (Safe, Low RAM < 256MB)
+EXEC_METHOD=$AUTO_EXEC_METHOD # 1 = Parallel (Fast, High RAM > 256MB), 2 = Sequential (Safe, Low RAM < 256MB)
 
 [Log Settings]
 UPTIME_LOG_MAX_SIZE=51200 # Max log file size in bytes for uptime tracking. Default is 51200.
 PING_LOG_ENABLE=NO # Enable or disable detailed ping logging (YES/NO). Default is NO.
 
-[Discord Settings]
+[Notification Settings]
 DISCORD_ENABLE=$DISCORD_ENABLE_VAL # Global toggle for Discord notifications (YES/NO). Default is NO.
+TELEGRAM_ENABLE=$TELEGRAM_ENABLE_VAL # Global toggle for Telegram notifications (YES/NO). Default is NO.
 SILENT_ENABLE=$SILENT_ENABLE_VAL # Mutes Discord alerts during specific hours (YES/NO). Default is NO.
 SILENT_START=$user_silent_start # Hour to start silent mode (0-23). Default is 23.
 SILENT_END=$user_silent_end # Hour to end silent mode (0-23). Default is 07.
 
-[Telegram Settings]
-TELEGRAM_ENABLE=$TELEGRAM_ENABLE_VAL # Global toggle for Telegram notifications (YES/NO). Default is NO.
-
-[Monitoring Settings]
+[Performance Settings]
 CPU_GUARD_THRESHOLD=2.0 # Max CPU load average allowed before skipping pings. Default is 2.0.
 RAM_GUARD_MIN_FREE=4096 # Minimum free RAM in KB required to run alerts. Default is 4096.
+
+[Heartbeat]
 HEARTBEAT=$HB_VAL # Periodic I am alive notification (YES/NO). Default is NO.
 HB_INTERVAL=$HB_SEC # Seconds between heartbeat messages. Default is 86400.
 HB_MENTION=$HB_MENTION # Ping User ID in heartbeat messages (YES/NO). Default is NO.
 HB_TARGET=$HB_TARGET # Target for Heartbeat: DISCORD, TELEGRAM, BOTH
+HB_START_HOUR=$HB_START_HOUR # Time of Heartbeat will start, also if 24H interval is selected time of day Heartbeat will notify. Default is 12.
 
 [Internet Connectivity]
 EXT_ENABLE=$EXT_VAL # Global toggle for internet monitoring (YES/NO). Default is YES.
@@ -470,24 +470,18 @@ EOF
     LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
     [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
 fi
-
 # ==============================================================================
 #  STEP 5: SECURE CREDENTIAL VAULT (OPENSSL ENFORCED)
 # ==============================================================================
 echo -e "\n${CYAN}🔐 Securing credentials (OpenSSL AES-256)...${NC}"
 
 # Function: get_hw_key
-# Purpose:  Generates a unique hardware signature.
 get_hw_key() {
     local seed="nwda_v1_secure_seed_2025"
     local cpu_serial=$(grep -i "serial" /proc/cpuinfo | head -1 | awk '{print $3}')
     [ -z "$cpu_serial" ] && cpu_serial="unknown_serial"
-    
     local mac_addr=$(cat /sys/class/net/eth0/address 2>/dev/null)
     [ -z "$mac_addr" ] && mac_addr=$(cat /sys/class/net/br-lan/address 2>/dev/null)
-    [ -z "$mac_addr" ] && mac_addr="00:00:00:00:00:00"
-
-    # Use openssl to hash the hardware info into a key
     echo -n "${seed}${cpu_serial}${mac_addr}" | openssl dgst -sha256 | awk '{print $2}'
 }
 
@@ -520,27 +514,26 @@ IP_LIST_FILE="$BASE_DIR/nwda_ips.conf"
 CONFIG_FILE="$BASE_DIR/nwda_settings.conf"
 VAULT_FILE="$BASE_DIR/.vault.enc"
 
-# Flash Paths (Persistent Buffers, 5KB limit enforced)
+# Flash Paths
 SILENT_BUFFER="$BASE_DIR/nwda_silent_buffer"
 OFFLINE_BUFFER="$BASE_DIR/nwda_offline_buffer"
 
-# RAM Paths (Reduce Flash Writes)
+# RAM Paths
 TMP_DIR="/tmp/netwatchda"
 LOGFILE="$TMP_DIR/nwda_uptime.log"
 PINGLOG="$TMP_DIR/nwda_ping.log"
-NET_STATUS_FILE="$TMP_DIR/nwda_net_status" # UP or DOWN
+NET_STATUS_FILE="$TMP_DIR/nwda_net_status"
 
 # Initialization
 mkdir -p "$TMP_DIR"
 if [ ! -f "$SILENT_BUFFER" ]; then touch "$SILENT_BUFFER"; fi
 if [ ! -f "$LOGFILE" ]; then touch "$LOGFILE"; fi
-# Default network status to UP to allow initial attempts
 if [ ! -f "$NET_STATUS_FILE" ]; then echo "UP" > "$NET_STATUS_FILE"; fi
 
 # Tracking Variables
 LAST_EXT_CHECK=0
 LAST_DEV_CHECK=0
-LAST_HB_CHECK=$(date +%s)
+LAST_HB_CHECK=0 # Initialized to 0 to trigger check logic immediately
 
 # --- HELPER: LOGGING ---
 log_msg() {
@@ -550,13 +543,11 @@ log_msg() {
     
     if [ "$type" = "PING" ] && [ "$PING_LOG_ENABLE" = "YES" ]; then
         echo "$ts - $msg" >> "$PINGLOG"
-        # Log Rotation
         if [ -f "$PINGLOG" ] && [ $(wc -c < "$PINGLOG") -gt "$UPTIME_LOG_MAX_SIZE" ]; then
             echo "$ts - [SYSTEM] Log rotated." > "$PINGLOG"
         fi
     elif [ "$type" = "UPTIME" ]; then
         echo "$ts - $msg" >> "$LOGFILE"
-        # Log Rotation
         if [ -f "$LOGFILE" ] && [ $(wc -c < "$LOGFILE") -gt "$UPTIME_LOG_MAX_SIZE" ]; then
             echo "$ts - [SYSTEM] Log rotated." > "$LOGFILE"
         fi
@@ -586,7 +577,6 @@ load_credentials() {
         local decrypted=""
         local key=$(get_hw_key)
         
-        # Always attempt OpenSSL Decryption
         decrypted=$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "$key" -in "$VAULT_FILE" 2>/dev/null)
         
         if [ -n "$decrypted" ]; then
@@ -606,15 +596,13 @@ send_payload() {
     local desc="$2"
     local color="$3"
     local filter="$4"
-    local telegram_text="$5" # Specialized text for Telegram
+    local telegram_text="$5" 
     local success=0
 
     # 1. DISCORD
     if [ "$DISCORD_ENABLE" = "YES" ] && [ -n "$DISCORD_WEBHOOK" ]; then
         if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "DISCORD" ]; then
-             # Ensure JSON description is safe
              local json_desc=$(echo "$desc" | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
-             
              if curl -s -k -f -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"$title\", \"description\": \"$json_desc\", \"color\": $color}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1; then
                 success=1
              else
@@ -629,7 +617,6 @@ send_payload() {
              local t_msg="$title
 $desc"
              if [ -n "$telegram_text" ]; then t_msg="$telegram_text"; fi
-             
              if curl -s -k -f -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
                 -d chat_id="$TELEGRAM_CHAT_ID" \
                 -d text="$t_msg" >/dev/null 2>&1; then
@@ -640,19 +627,12 @@ $desc"
         fi
     fi
     
-    return $((1 - success)) # Returns 0 on success, 1 on failure
+    return $((1 - success))
 }
 
 # --- HELPER: NOTIFICATION SENDER ---
-# Usage: send_notification "Title" "Desc" "Color" "Type" "TARGET_FILTER" "FORCE_SEND" "TELEGRAM_TEXT"
 send_notification() {
-    local title="$1"
-    local desc="$2"
-    local color="$3"
-    local type="$4" # "ALERT", "SUCCESS", "INFO", "WARNING", "SUMMARY"
-    local filter="$5" # "DISCORD", "TELEGRAM", "BOTH", or empty
-    local force="$6" # "YES" to bypass buffer check
-    local tel_text="$7" # Optional specialized text for Telegram
+    local title="$1"; local desc="$2"; local color="$3"; local type="$4"; local filter="$5"; local force="$6"; local tel_text="$7"
     
     # RAM Guard
     local free_ram=$(df /tmp | awk 'NR==2 {print $4}')
@@ -661,29 +641,19 @@ send_notification() {
         return
     fi
     
-    # 1 SEC DELAY REQUIREMENT
     sleep 1
 
-    # Check Internet Status
     local net_stat="UP"
-    if [ -f "$NET_STATUS_FILE" ]; then
-        net_stat=$(cat "$NET_STATUS_FILE")
-    fi
+    if [ -f "$NET_STATUS_FILE" ]; then net_stat=$(cat "$NET_STATUS_FILE"); fi
 
     # IF Internet is DOWN and not forced -> BUFFER IT
     if [ "$net_stat" = "DOWN" ] && [ "$force" != "YES" ]; then
-        # Check Buffer Size (5KB Limit = 5120 bytes)
         if [ -f "$OFFLINE_BUFFER" ] && [ $(wc -c < "$OFFLINE_BUFFER") -ge 5120 ]; then
-             log_msg "[BUFFER] Buffer full (5KB). Notification dropped." "UPTIME"
+             log_msg "[BUFFER] Buffer full. Dropped." "UPTIME"
              return
         fi
-
-        # Format: TITLE|||DESC|||COLOR|||FILTER|||TELEGRAM_TEXT
-        # Flatten newlines to __BR__ for storage
         local clean_desc=$(echo "$desc" | sed ':a;N;$!ba;s/\n/__BR__/g')
         local clean_tel=$(echo "$tel_text" | sed ':a;N;$!ba;s/\n/__BR__/g')
-        
-        # Use ||| as delimiter
         echo "${title}|||${clean_desc}|||${color}|||${filter}|||${clean_tel}" >> "$OFFLINE_BUFFER"
         log_msg "[BUFFER] Internet Down. Notification buffered." "UPTIME"
         return
@@ -691,14 +661,13 @@ send_notification() {
 
     # Try sending
     if ! send_payload "$title" "$desc" "$color" "$filter" "$tel_text"; then
-        # If CURL fails despite status being UP, buffer it
         if [ -f "$OFFLINE_BUFFER" ] && [ $(wc -c < "$OFFLINE_BUFFER") -ge 5120 ]; then
-             log_msg "[BUFFER] Buffer full (5KB). Send failed & dropped." "UPTIME"
+             log_msg "[BUFFER] Buffer full. Failed." "UPTIME"
         else
              local clean_desc=$(echo "$desc" | sed ':a;N;$!ba;s/\n/__BR__/g')
              local clean_tel=$(echo "$tel_text" | sed ':a;N;$!ba;s/\n/__BR__/g')
              echo "${title}|||${clean_desc}|||${color}|||${filter}|||${clean_tel}" >> "$OFFLINE_BUFFER"
-             log_msg "[BUFFER] Send failed (Curl error). Notification buffered." "UPTIME"
+             log_msg "[BUFFER] Send failed. Buffered." "UPTIME"
         fi
     fi
 }
@@ -707,7 +676,6 @@ send_notification() {
 flush_buffer() {
     if [ -f "$OFFLINE_BUFFER" ]; then
         log_msg "[SYSTEM] Internet Restored. Flushing buffer..." "UPTIME"
-        
         while read -r line; do
              local b_title=$(echo "$line" | awk -F '\\|\\|\\|' '{print $1}')
              local b_desc_raw=$(echo "$line" | awk -F '\\|\\|\\|' '{print $2}')
@@ -721,53 +689,63 @@ flush_buffer() {
              sleep 1 
              send_payload "$b_title" "$b_desc" "$b_color" "$b_filter" "$b_tel"
         done < "$OFFLINE_BUFFER"
-        
         rm -f "$OFFLINE_BUFFER"
-        log_msg "[SYSTEM] Buffer flushed and cleared." "UPTIME"
+        log_msg "[SYSTEM] Buffer flushed." "UPTIME"
     fi
 }
 # --- STARTUP SEQUENCE ---
-# 1. Load Config (to get Method/Timers)
 load_config
-# 2. Decrypt Credentials ONCE (Optimized)
 load_credentials
 if [ $? -eq 0 ]; then
-    log_msg "[SYSTEM] Credentials loaded and decrypted successfully." "UPTIME"
+    log_msg "[SYSTEM] Credentials loaded and decrypted." "UPTIME"
 else
-    log_msg "[WARNING] Could not decrypt credentials or vault missing." "UPTIME"
+    log_msg "[WARNING] Vault error or missing." "UPTIME"
+fi
+
+# Initial Heartbeat Logic to handle HB_START_HOUR
+if [ "$HEARTBEAT" = "YES" ]; then
+    # Fake the last check to be 'now' so the loop calculates from this point
+    # We will let the specific hour logic inside the loop handle the first trigger
+    LAST_HB_CHECK=$(date +%s)
 fi
 
 # --- MAIN LOGIC LOOP ---
 while true; do
-    # Reload config in loop to allow changing intervals/toggles on the fly
-    # We DO NOT reload credentials here to save CPU
     load_config
-    
-    NOW_HUMAN=$(date '+%b %d %H:%M:%S')
-    NOW_SEC=$(date +%s)
-    CUR_HOUR=$(date +%H)
+    NOW_HUMAN=$(date '+%b %d %H:%M:%S'); NOW_SEC=$(date +%s); CUR_HOUR=$(date +%H)
     
     # CPU Guard
     CPU_LOAD=$(cat /proc/loadavg | awk '{print $1}')
     if awk "BEGIN {exit !($CPU_LOAD > $CPU_GUARD_THRESHOLD)}"; then
-        log_msg "[SYSTEM] High Load ($CPU_LOAD). Skipping cycle." "UPTIME"
+        log_msg "[SYSTEM] High Load ($CPU_LOAD). Skipping." "UPTIME"
         sleep 10
         continue
     fi
 
-    # --- HEARTBEAT ---
+    # --- HEARTBEAT LOGIC WITH START HOUR ---
     if [ "$HEARTBEAT" = "YES" ]; then 
-        if [ $((NOW_SEC - LAST_HB_CHECK)) -ge "$HB_INTERVAL" ]; then
-            LAST_HB_CHECK=$NOW_SEC
-            HB_MSG="**Router:** $ROUTER_NAME\n**Status:** Systems Operational\n**Time:** $NOW_HUMAN"
-            
-            if [ "$HB_MENTION" = "YES" ]; then
-                HB_MSG="$HB_MSG\n<@$DISCORD_USERID>"
+        HB_DIFF=$((NOW_SEC - LAST_HB_CHECK))
+        if [ "$HB_DIFF" -ge "$HB_INTERVAL" ]; then
+            CAN_SEND=0
+            # If default interval (24h), align with hour
+            if [ "$HB_INTERVAL" -ge 86000 ]; then
+                 # If we are in the correct hour (allow match)
+                 if [ "$CUR_HOUR" -eq "$HB_START_HOUR" ]; then CAN_SEND=1; fi
+                 # Force send if we missed it by a lot (drift safety)
+                 if [ "$HB_DIFF" -gt 90000 ]; then CAN_SEND=1; fi
+            else
+                 # Non-24h interval: Just respect the timer
+                 CAN_SEND=1
             fi
             
-            TARGET=${HB_TARGET:-BOTH}
-            send_notification "💓 Heartbeat Report" "$HB_MSG" "1752220" "INFO" "$TARGET" "NO" "💓 Heartbeat - $ROUTER_NAME - $NOW_HUMAN"
-            log_msg "[$ROUTER_NAME] Heartbeat sent ($TARGET)." "UPTIME"
+            if [ "$CAN_SEND" -eq 1 ]; then
+                LAST_HB_CHECK=$NOW_SEC
+                HB_MSG="**Router:** $ROUTER_NAME\n**Status:** Systems Operational\n**Time:** $NOW_HUMAN"
+                if [ "$HB_MENTION" = "YES" ]; then HB_MSG="$HB_MSG\n<@$DISCORD_USERID>"; fi
+                TARGET=${HB_TARGET:-BOTH}
+                send_notification "💓 Heartbeat Report" "$HB_MSG" "1752220" "INFO" "$TARGET" "NO" "💓 Heartbeat - $ROUTER_NAME - $NOW_HUMAN"
+                log_msg "Heartbeat sent ($TARGET)." "UPTIME"
+            fi
         fi
     fi
 
@@ -788,7 +766,7 @@ while true; do
         send_notification "🌙 Silent Hours Summary" "**Router:** $ROUTER_NAME\n$CLEAN_SUMMARY" "10181046" "SUMMARY" "BOTH" "NO" "🌙 Silent Hours Summary - $ROUTER_NAME
 $SUMMARY_CONTENT"
         > "$SILENT_BUFFER"
-        log_msg "[SYSTEM] Silent buffer dumped and cleared." "UPTIME"
+        log_msg "[SYSTEM] Silent buffer dumped." "UPTIME"
     fi
 
     # --- INTERNET MONITORING ---
@@ -798,54 +776,41 @@ $SUMMARY_CONTENT"
             FD="$TMP_DIR/nwda_ext_d"; FT="$TMP_DIR/nwda_ext_t"; FC="$TMP_DIR/nwda_ext_c"
             
             EXT_UP=0
-            if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP" > /dev/null 2>&1; then
-                EXT_UP=1
-                log_msg "INTERNET_CHECK ($EXT_IP): UP" "PING"
-            elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP2" > /dev/null 2>&1; then
-                EXT_UP=1
-                log_msg "INTERNET_CHECK ($EXT_IP2): UP" "PING"
-            else
-                log_msg "INTERNET_CHECK: DOWN" "PING"
-            fi
+            if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP" > /dev/null 2>&1; then EXT_UP=1;
+            elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP2" > /dev/null 2>&1; then EXT_UP=1; fi
 
             if [ "$EXT_UP" -eq 0 ]; then
                 C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
                 if [ "$C" -ge "$EXT_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
-                    echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
-                    echo "DOWN" > "$NET_STATUS_FILE" # Critical for buffering
-                    
-                    log_msg "[ALERT] [$ROUTER_NAME] INTERNET DOWN" "UPTIME"
+                    echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"; echo "DOWN" > "$NET_STATUS_FILE"
+                    log_msg "[ALERT] INTERNET DOWN" "UPTIME"
                     
                     if [ "$IS_SILENT" -ne 0 ]; then
-                         if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then
-                             : 
-                         else
+                         if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
                              echo "Internet Down: $NOW_HUMAN" >> "$SILENT_BUFFER"
                          fi
+                    else
+                         # Alert logic logic handles buffering via send_notification if truly down
+                         # But since net_stat is DOWN, send_notification will buffer it automatically.
+                         # This block is just for logging mainly.
+                         :
                     fi
                 fi
             else
                 if [ -f "$FD" ]; then
-                    echo "UP" > "$NET_STATUS_FILE" # Critical: Set UP before sending restore
-                    
+                    echo "UP" > "$NET_STATUS_FILE"
                     START_TIME=$(cat "$FT"); START_SEC=$(cat "$FD")
                     DURATION_SEC=$((NOW_SEC - START_SEC))
                     DR="$((DURATION_SEC/60))m $((DURATION_SEC%60))s"
-                    
                     MSG_D="**Router:** $ROUTER_NAME\n**Down at:** $START_TIME\n**Up at:** $NOW_HUMAN\n**Total Outage:** $DR"
                     MSG_T="🟢 Connectivity Restored * $ROUTER_NAME - $START_TIME - $NOW_HUMAN - $DR"
-                    
-                    log_msg "[SUCCESS] [$ROUTER_NAME] INTERNET UP (Down $DR)" "UPTIME"
+                    log_msg "[SUCCESS] INTERNET UP (Down $DR)" "UPTIME"
                     
                     if [ "$IS_SILENT" -eq 0 ]; then
-                        # 1. Force Send Internet Restored
                         send_notification "🟢 Connectivity Restored" "$MSG_D" "3066993" "SUCCESS" "BOTH" "YES" "$MSG_T"
-                        # 2. Flush Device Alerts
                         flush_buffer
                     else
-                         if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then
-                             : 
-                         else
+                         if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
                              echo -e "Internet Restored: $NOW_HUMAN (Down $DR)" >> "$SILENT_BUFFER"
                          fi
                     fi
@@ -863,121 +828,67 @@ $SUMMARY_CONTENT"
         if [ $((NOW_SEC - LAST_DEV_CHECK)) -ge "$DEV_SCAN_INTERVAL" ]; then
             LAST_DEV_CHECK=$NOW_SEC
             
-            # --- EXECUTION METHOD SWITCH ---
-            # 1 = PARALLEL (Original, Forking) - Fast
-            # 2 = SEQUENTIAL (Safe) - Low RAM
-            if [ "$EXEC_METHOD" = "1" ]; then
-                # === METHOD 1: PARALLEL EXECUTION ===
+            check_device_logic() {
+                TIP=$1; NAME=$2
+                SIP=$(echo "$TIP" | tr '.' '_')
+                FC="$TMP_DIR/dev_${SIP}_c"; FD="$TMP_DIR/dev_${SIP}_d"; FT="$TMP_DIR/dev_${SIP}_t"
+                
+                if ping -q -c "$DEV_PING_COUNT" -W 1 "$TIP" > /dev/null 2>&1; then
+                    if [ -f "$FD" ]; then
+                        DSTART=$(cat "$FT"); DSSEC=$(cat "$FD"); DUR=$(( $(date +%s) - DSSEC ))
+                        DR_STR="$((DUR/60))m $((DUR%60))s"
+                        CUR_TIME=$(date '+%b %d %H:%M:%S')
+                        D_MSG="**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Down at:** $DSTART\n**Up at:** $CUR_TIME\n**Outage:** $DR_STR"
+                        T_MSG="🟢 Device UP* $ROUTER_NAME - $NAME - $TIP - $CUR_TIME - $DR_STR"
+                        log_msg "[SUCCESS] Device: $NAME Online ($DR_STR)" "UPTIME"
+                        
+                        if [ "$IS_SILENT" -eq 1 ]; then
+                             if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
+                                 echo "Device $NAME UP: $CUR_TIME (Down $DR_STR)" >> "$SILENT_BUFFER"
+                             fi
+                        else
+                             send_notification "🟢 Device Online" "$D_MSG" "3066993" "SUCCESS" "BOTH" "NO" "$T_MSG"
+                        fi
+                        rm -f "$FD" "$FT"
+                    fi
+                    echo 0 > "$FC"
+                else
+                    C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
+                    if [ "$C" -ge "$DEV_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
+                         TS=$(date '+%b %d %H:%M:%S'); echo "$(date +%s)" > "$FD"; echo "$TS" > "$FT"
+                         log_msg "[ALERT] Device: $NAME Down" "UPTIME"
+                         D_MSG="**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Time:** $TS"
+                         T_MSG="🔴 Device Down * $ROUTER_NAME - $NAME - $TIP - $TS"
+                         
+                         if [ "$IS_SILENT" -eq 1 ]; then
+                             if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
+                                 echo "Device $NAME DOWN: $TS" >> "$SILENT_BUFFER"
+                             fi
+                         else
+                             send_notification "🔴 Device Down" "$D_MSG" "15548997" "ALERT" "BOTH" "NO" "$T_MSG"
+                         fi
+                    fi
+                fi
+            }
+
+            if [ "$EXEC_METHOD" -eq 1 ]; then
+                # PARALLEL EXECUTION
                 grep -vE '^#|^$' "$IP_LIST_FILE" | while read -r line; do
                     (
                         TIP=$(echo "$line" | cut -d'@' -f1 | tr -d ' ')
                         NAME=$(echo "$line" | cut -d'@' -f2- | sed 's/^[ \t]*//')
                         [ -z "$NAME" ] && NAME="$TIP"
-                        [ -z "$TIP" ] && exit
-                        
-                        SIP=$(echo "$TIP" | tr '.' '_')
-                        FC="$TMP_DIR/dev_${SIP}_c"; FD="$TMP_DIR/dev_${SIP}_d"; FT="$TMP_DIR/dev_${SIP}_t"
-                        
-                        if ping -q -c "$DEV_PING_COUNT" -W 1 "$TIP" > /dev/null 2>&1; then
-                            log_msg "DEVICE - $NAME - $TIP: UP" "PING"
-                            if [ -f "$FD" ]; then
-                                DSTART=$(cat "$FT"); DSSEC=$(cat "$FD"); DUR=$(( $(date +%s) - DSSEC ))
-                                DR_STR="$((DUR/60))m $((DUR%60))s"
-                                CUR_TIME=$(date '+%b %d %H:%M:%S')
-                                
-                                D_MSG="**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Down at:** $DSTART\n**Up at:** $CUR_TIME\n**Outage:** $DR_STR"
-                                T_MSG="🟢 Device UP* $ROUTER_NAME - $NAME - $TIP - $CUR_TIME - $DR_STR"
-                                
-                                log_msg "[SUCCESS] [$ROUTER_NAME] Device: $NAME ($TIP) Online (Down $DR_STR)" "UPTIME"
-                                
-                                if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
-                                     if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
-                                         echo "Device $NAME UP: $CUR_TIME (Down $DR_STR)" >> "$SILENT_BUFFER"
-                                     fi
-                                else
-                                     send_notification "🟢 Device Online" "$D_MSG" "3066993" "SUCCESS" "BOTH" "NO" "$T_MSG"
-                                fi
-                                rm -f "$FD" "$FT"
-                            fi
-                            echo 0 > "$FC"
-                        else
-                            log_msg "DEVICE - $NAME - $TIP: DOWN" "PING"
-                            C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
-                            if [ "$C" -ge "$DEV_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
-                                 TS=$(date '+%b %d %H:%M:%S'); TSEC=$(date +%s)
-                                 echo "$TSEC" > "$FD"; echo "$TS" > "$FT"
-                                 log_msg "[ALERT] [$ROUTER_NAME] Device: $NAME ($TIP) Down" "UPTIME"
-                                 
-                                 D_MSG="**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Time:** $TS"
-                                 T_MSG="🔴 Device Down * $ROUTER_NAME - $NAME - $TIP - $TS"
-                                 
-                                 if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
-                                     if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
-                                         echo "Device $NAME DOWN: $TS" >> "$SILENT_BUFFER"
-                                     fi
-                                 else
-                                     send_notification "🔴 Device Down" "$D_MSG" "15548997" "ALERT" "BOTH" "NO" "$T_MSG"
-                                 fi
-                            fi
-                        fi
+                        [ -n "$TIP" ] && check_device_logic "$TIP" "$NAME"
                     ) &
-                done
-                wait
+                done; wait
             else
-                # === METHOD 2: SEQUENTIAL EXECUTION ===
+                # SEQUENTIAL EXECUTION
                 grep -vE '^#|^$' "$IP_LIST_FILE" | while read -r line; do
                     TIP=$(echo "$line" | cut -d'@' -f1 | tr -d ' ')
                     NAME=$(echo "$line" | cut -d'@' -f2- | sed 's/^[ \t]*//')
                     [ -z "$NAME" ] && NAME="$TIP"
-                    [ -z "$TIP" ] && continue
-                    
-                    SIP=$(echo "$TIP" | tr '.' '_')
-                    FC="$TMP_DIR/dev_${SIP}_c"; FD="$TMP_DIR/dev_${SIP}_d"; FT="$TMP_DIR/dev_${SIP}_t"
-                    
-                    if ping -q -c "$DEV_PING_COUNT" -W 1 "$TIP" > /dev/null 2>&1; then
-                        log_msg "DEVICE - $NAME - $TIP: UP" "PING"
-                        if [ -f "$FD" ]; then
-                            DSTART=$(cat "$FT"); DSSEC=$(cat "$FD"); DUR=$(( $(date +%s) - DSSEC ))
-                            DR_STR="$((DUR/60))m $((DUR%60))s"
-                            CUR_TIME=$(date '+%b %d %H:%M:%S')
-                            
-                            D_MSG="**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Down at:** $DSTART\n**Up at:** $CUR_TIME\n**Outage:** $DR_STR"
-                            T_MSG="🟢 Device UP* $ROUTER_NAME - $NAME - $TIP - $CUR_TIME - $DR_STR"
-                            
-                            log_msg "[SUCCESS] [$ROUTER_NAME] Device: $NAME ($TIP) Online (Down $DR_STR)" "UPTIME"
-                            
-                            if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
-                                 if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
-                                     echo "Device $NAME UP: $CUR_TIME (Down $DR_STR)" >> "$SILENT_BUFFER"
-                                 fi
-                            else
-                                 send_notification "🟢 Device Online" "$D_MSG" "3066993" "SUCCESS" "BOTH" "NO" "$T_MSG"
-                            fi
-                            rm -f "$FD" "$FT"
-                        fi
-                        echo 0 > "$FC"
-                    else
-                        log_msg "DEVICE - $NAME - $TIP: DOWN" "PING"
-                        C=$(($(cat "$FC" 2>/dev/null || echo 0)+1)); echo "$C" > "$FC"
-                        if [ "$C" -ge "$DEV_FAIL_THRESHOLD" ] && [ ! -f "$FD" ]; then
-                             TS=$(date '+%b %d %H:%M:%S'); TSEC=$(date +%s)
-                             echo "$TSEC" > "$FD"; echo "$TS" > "$FT"
-                             log_msg "[ALERT] [$ROUTER_NAME] Device: $NAME ($TIP) Down" "UPTIME"
-                             
-                             D_MSG="**Router:** $ROUTER_NAME\n**Device:** $NAME ($TIP)\n**Time:** $TS"
-                             T_MSG="🔴 Device Down * $ROUTER_NAME - $NAME - $TIP - $TS"
-                             
-                             if [ "$SILENT_ENABLE" = "YES" ] && [ "$IS_SILENT" -eq 1 ]; then
-                                 if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else
-                                     echo "Device $NAME DOWN: $TS" >> "$SILENT_BUFFER"
-                                 fi
-                             else
-                                 send_notification "🔴 Device Down" "$D_MSG" "15548997" "ALERT" "BOTH" "NO" "$T_MSG"
-                             fi
-                        fi
-                    fi
+                    [ -n "$TIP" ] && check_device_logic "$TIP" "$NAME"
                 done
-                # No wait needed for sequential
             fi
         fi
     fi
@@ -994,7 +905,6 @@ cat <<EOF > "$SERVICE_PATH"
 START=99
 USE_PROCD=1
 
-# Command Definitions
 extra_command "status" "Check if monitor is running"
 extra_command "logs" "View last 20 log entries"
 extra_command "clear" "Clear the log file"
@@ -1017,7 +927,6 @@ status() {
     if pgrep -f "netwatchda.sh" > /dev/null; then
         echo -e "\033[1;32m● netwatchda is RUNNING.\033[0m"
         echo "   PID: \$(pgrep -f "netwatchda.sh" | head -1)"
-        echo "   Uptime Log: /tmp/netwatchda/nwda_uptime.log"
     else
         echo -e "\033[1;31m● netwatchda is STOPPED.\033[0m"
     fi
@@ -1037,7 +946,6 @@ clear() {
     echo "Log file cleared."
 }
 
-# Shared Helper to load Settings
 load_functions() {
     if [ -f "$INSTALL_DIR/netwatchda.sh" ]; then
         . "$INSTALL_DIR/nwda_settings.conf" 2>/dev/null
@@ -1053,14 +961,9 @@ get_hw_key() {
     echo -n "\${seed}\${cpu_serial}\${mac_addr}" | openssl dgst -sha256 | awk '{print \$2}'
 }
 
-# Helper to Decrypt (OpenSSL Only)
 get_decrypted_creds() {
     local vault="$INSTALL_DIR/.vault.enc"
-    
-    if [ ! -f "\$vault" ]; then
-        return 1
-    fi
-    
+    if [ ! -f "\$vault" ]; then return 1; fi
     local key=\$(get_hw_key)
     local decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
     echo "\$decrypted"
@@ -1070,7 +973,6 @@ discord() {
     load_functions
     local decrypted=\$(get_decrypted_creds)
     local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
-    
     if [ -n "\$webhook" ]; then
         echo "Sending Discord test..."
         curl -s -k -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook"
@@ -1085,7 +987,6 @@ telegram() {
     local decrypted=\$(get_decrypted_creds)
     local token=\$(echo "\$decrypted" | cut -d'|' -f3)
     local chat=\$(echo "\$decrypted" | cut -d'|' -f4)
-    
     if [ -n "\$token" ]; then
         echo "Sending Telegram test..."
         curl -s -k -X POST "https://api.telegram.org/bot\$token/sendMessage" -d chat_id="\$chat" -d text="🛠️ Telegram Warning Test - \$ROUTER_NAME"
@@ -1117,7 +1018,6 @@ credentials() {
         printf "New Discord User ID: "
         read d_uid </dev/tty
     fi
-    
     if [ "\$c_choice" = "2" ] || [ "\$c_choice" = "3" ]; then
         printf "New Telegram Token: "
         read t_tok </dev/tty
@@ -1127,7 +1027,6 @@ credentials() {
     
     local new_data="\${d_hook}|\${d_uid}|\${t_tok}|\${t_chat}"
     local vault="$INSTALL_DIR/.vault.enc"
-    
     local key=\$(get_hw_key)
     if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then
         echo -e "\033[1;32m✅ Credentials updated and re-encrypted (OpenSSL).\033[0m"
@@ -1159,7 +1058,6 @@ purge() {
             /etc/init.d/netwatchda stop
             /etc/init.d/netwatchda disable
             
-            # Smart Dependency Check
             echo "📦 Checking dependencies..."
             printf "❓ Remove curl, openssl-util, and ca-bundle? (May break other apps) [y/N]: "
             read rem_deps </dev/tty
@@ -1203,7 +1101,7 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart >/dev/null 2>&1
 
 # ==============================================================================
-#  STEP 8: FINAL SUCCESS MESSAGE & TEST NOTIFICATION
+#  STEP 8: FINAL SUCCESS MESSAGE
 # ==============================================================================
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 MSG="**Router:** $router_name_input\n**Time:** $NOW_FINAL\n**Status:** Service Installed & Active"
