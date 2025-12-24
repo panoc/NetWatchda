@@ -44,7 +44,7 @@ It features **smart resource management** that automatically adjusts its executi
 ### Discrod ### 
 
 To receive alerts, you need a Webhook URL. If you want mentions (pings), you also need your User ID.
-```sh
+```
 Phase 1: Create the Discord Webhook
 1.  Open Discord and right-click your server's text channel (e.g., `#logs`).
 2.  Select **Edit Channel** -> **Integrations** -> **Webhooks**.
@@ -61,7 +61,7 @@ Phase 1: Create the Discord Webhook
 ### Telegram ###
 
 ### **Phase 1. Create the Bot (Get the Token)**
-```sh
+```
 1. Open Telegram and search for @BotFather.
 2. Start a chat and send the command: /newbot
 3. Follow the instructions to give your bot a name (e.g., MyHomeMonitor) and a username (must end in "bot", e.g., nwda_router_bot).
@@ -82,9 +82,6 @@ The bot needs to know who to send the messages to.
 **Note:** 
 If you are using a Group, the Chat ID will usually start with a minus sign (e.g., -100123456789).
 ```
-
-```
-
 
 > [!TIP]
 > The installer will ask for these during setup. If you change them later, use the secure command: `/etc/init.d/netwatchda credentials`
@@ -226,6 +223,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 
 ```
+
 
 
 
