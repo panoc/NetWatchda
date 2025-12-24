@@ -25,7 +25,6 @@ Designed for easy installation, reliability, minimal resource usage, and zero bl
 * **🔐 OpenSSL Security**
     * Credentials are **never** stored in plain text.
     * Uses **AES-256 Encryption (OpenSSL)** locked to your specific hardware signature.
-    * Decryption happens once at boot, keeping CPU usage near zero during operation.
 * **🛡️ Resilience**
     * **Offline Buffering:** If the internet cuts out, alerts are saved (up to 5KB) and sent immediately when connectivity is restored.
     * **Resource Guards:** Pauses monitoring if system CPU load is too high or RAM is critically low.
