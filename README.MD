@@ -1,5 +1,5 @@
 # netwatchda ![](https://icongr.am/octicons/broadcast.svg?size=24&color=0366d6)
-<img src="https://icongr.am/octicons/terminal.svg?size=30&color=blue" width="30">
+
 ### Advanced Network Monitoring & Alerting for OpenWrt
 
 **netwatchda** is a lightweight, POSIX-compliant shell daemon designed specifically for OpenWrt routers. It bridges the gap between your network hardware and your mobile device by sending real-time status **notifications** via **Discord** or **Telegram**.
@@ -161,7 +161,7 @@ List the local devices you want to monitor.
 
 ---
 
-## `>_` 1 Management via Terminal
+## `<img src="https://icongr.am/octicons/terminal.svg?size=30&color=blue" width="30"> 1 Management via Terminal
 
 `netwatchda` installs a comprehensive system service.
 
@@ -251,6 +251,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
 
 
 
