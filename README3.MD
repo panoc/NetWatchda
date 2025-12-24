@@ -58,7 +58,7 @@ Phase 1: Create the Discord Webhook
 4.  *Keep this numner safe!*
 
 ```
-###Telegram Configuration###
+###Telegram Configuration
 
 ### **Phase 1. Create the Bot (Get the Token)**
 ```
@@ -223,6 +223,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 
 ```
+
 
 
 
