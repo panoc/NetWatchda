@@ -127,24 +127,31 @@ Configuration files are located in `/root/netwatchdta/`.
 | --- | --- |
 | `ROUTER_NAME` | Name displayed in all notifications (e.g., "Home Router"). |
 | `EXEC_METHOD` | `1` for **Parallel** (Fast/High RAM), `2` for **Sequential** (Safe/Low RAM). |
-| `CPU_GUARD_THRESHOLD` | Pauses monitoring if system load exceeds this value (Default: `2.0`). |
-| `RAM_GUARD_MIN_FREE` | Min free RAM (KB) required to process alerts (Default: `4096`). |
+| `UPTIME_LOG_MAX_SIZE` | Max log file size in bytes for uptime tracking |
+| `PING_LOG_ENABLE` | Enable or disable detailed ping logging. |
 | `DISCORD_ENABLE` | `YES`/`NO`. Toggle Discord notifications. |
 | `TELEGRAM_ENABLE` | `YES`/`NO`. Toggle Telegram notifications. |
 | `SILENT_ENABLE` | `YES`/`NO`. Enables Silent Mode (buffers alerts). |
 | `SILENT_START` | Hour to **start** silence (0-23) (e.g., `23` for 11 PM). |
 | `SILENT_END` | Hour to **end** silence (0-23) (e.g., `07` for 7 AM). |
+| `CPU_GUARD_THRESHOLD` | Pauses monitoring if system load exceeds this value. |
+| `RAM_GUARD_MIN_FREE` | Min free RAM (KB) required to process alerts. |
 | `HEARTBEAT` | `YES`/`NO`. Sends a periodic "I am alive" message. |
 | `HB_INTERVAL` | Seconds between heartbeats (Default: `86400` = 24h). |
-| `HB_START_HOUR` | The hour (0-23) the heartbeat should arrive (Default: `12`). |
+| `HB_START_HOUR` | The hour (0-23) the 1st heartbeat should arrive. |
 | `HB_TARGET` | Where to send: `DISCORD`, `TELEGRAM`, or `BOTH`. |
+| `HB_START_HOUR` | Time of Heartbeat will start, also if 24H interval is selected time of day Heartbeat will notify. |
 | `EXT_ENABLE` | `YES`/`NO`. Monitor ISP/Internet connectivity. |
 | `EXT_IP` | Primary external IP to ping (Default: `1.1.1.1`). |
+| `EXT_IP2` | Seondary external IP to ping (Default: `8.8.8.8`). |
 | `EXT_SCAN_INTERVAL` | How often (in seconds) to check internet status. |
 | `EXT_FAIL_THRESHOLD` | Failed checks before marking internet as DOWN. |
+| `EXT_PING_COUNT1` | Number of packets per internet check.|
+| `EXT_PING_TIMEOUT` | Seconds to wait for ping response. |
 | `DEVICE_MONITOR` | `YES`/`NO`. Monitor local LAN devices. |
 | `DEV_SCAN_INTERVAL` | How often (in seconds) to check local devices. |
 | `DEV_FAIL_THRESHOLD` | Failed checks before marking a device as DOWN. |
+| 1DEV_PING_COUNT` | Number of packets per device check. |
 
 > ### Understanding "Silent Hours"
 > 
