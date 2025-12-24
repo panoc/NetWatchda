@@ -118,7 +118,7 @@ Depending on your OS, the files are installed in standard locations:
 
 Configuration files are located in the Base Folder (see above).
 
-** 1. `nwdta_settings.conf` **
+** 1. **nwdta_settings.conf **
 
 <details>
 <summary><strong>Controls the behavior of the daemon.</strong></summary>
@@ -164,7 +164,7 @@ Configuration files are located in the Base Folder (see above).
 
 </details>
 
-** 2. `nwdta_ips.conf` **
+** 2. nwdta_ips.conf **
 
 <details>
 <summary><strong>List the local devices you want to monitor.</strong></summary>
