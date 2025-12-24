@@ -1,33 +1,3 @@
-It is indeed a very strong README. It’s comprehensive, uses badges well, and the tables are excellent for readability.
-
-However, I have found a few **typos** (some quite visible) and some **Markdown syntax errors** that will break the rendering on GitHub.
-
-Here are the specific fixes and a polished version below.
-
-### 1. Critical Fixes (Typos & Syntax)
-
-* **The `wget` Link Error:** In your installation code block, you have markdown syntax `[url](url)` inside the code block. GitHub will render this literally as text, not a link. It should just be the raw URL.
-* **"Discrod":** Title typo in the configuration section.
-* **"tt features":** In the intro paragraph (`It features`).
-* **"numner" & "toker":** Typos in the credentials section (`number` and `token`).
-
-### 2. Formatting Suggestion (Readability)
-
-Currently, you have the Discord and Telegram instructions wrapped in code blocks (`````). This forces the text to be monospaced and **prevents text wrapping**. On mobile phones or smaller screens, users will have to scroll horizontally to read the instructions, which is a bad user experience.
-
-**Suggestion:** Change those instruction blocks to standard Markdown Numbered Lists.
-
-### 3. Diagram Suggestion
-
-Since your script has logic regarding RAM detection (Parallel vs. Sequential) and Offline Buffering, a visual representation of this logic would help users understand *why* this script is "smart" compared to a simple cron job.
-
----
-
-### The Polished Code
-
-Here is the corrected Markdown. You can copy-paste this directly.
-
-```markdown
 # netwatchda ![](https://icongr.am/octicons/broadcast.svg?size=24&color=0366d6)
 
 ### Advanced Network Monitoring & Alerting for OpenWrt
@@ -280,3 +250,4 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
