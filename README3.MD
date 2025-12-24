@@ -141,6 +141,13 @@ Controls the behavior of the daemon.
 | `DEV_SCAN_INTERVAL` | How often (in seconds) to check local devices. |
 | `DEV_FAIL_THRESHOLD` | Failed checks before marking a device as DOWN. |
 
+> [!TIP]
+> ### Understanding "Silent Hours"
+> If you enable Silent Hours (e.g., 23:00 to 07:00):
+> 1. Individual alerts are **paused**.
+>2. Events are saved to a temporary RAM buffer (`nwda_silent_buffer`).
+> 3. At 07:00, a single **Summary Message** is sent containing all overnight events.
+
 ### 2. `nwda_ips.conf`
 
 List the local devices you want to monitor.
@@ -207,14 +214,6 @@ top -b -n 1 | grep netwatchda
 * **Idle:** ~1.2 MB - 2 MB
 * **Peak (During Alert):** ~4 MB - 6 MB
 
-### Understanding "Silent Hours"
-
-If you enable Silent Hours (e.g., 23:00 to 07:00):
-
-1. Individual alerts are **paused**.
-2. Events are saved to a temporary RAM buffer (`nwda_silent_buffer`).
-3. At 07:00, a single **Summary Message** is sent containing all overnight events.
-
 ---
 
 ## 🗑️ Uninstallation
@@ -239,6 +238,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 
 ```
+
 
 
 
