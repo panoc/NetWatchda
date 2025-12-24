@@ -235,7 +235,7 @@ The following table illustrates how `netwatchda` manages memory during a "mass e
 | --- | --- | --- |
 | **50 Devices Idle (Pinging)** | ~2 MB (Total) | ~4 MB (Total) |
 | **50 Devices Down (Buffering)** | ~2 MB (Total) | ~5 MB (Total) |
-| **50 Devices Down (Sending Alerts)** | **~3.5 MB** (Queue: 1 at a time) | **~75 MB Spike** (Concurrency: 50 at once) |
+| **50 Devices Down (Sending Alerts)** | **~3.5 MB** (Queue: 1 at a time) | **~75-100 MB Spike** (Concurrency: 50 at once) |
 | **Flushing 50 Buffered Alerts** | **~3.5 MB** (Queue: 1 at a time) | **~3.5 MB** (Queue: 1 at a time) |
 
 > **Note:** Parallel Mode trades spare RAM for speed. The installer automatically restricts Parallel Mode to routers with sufficient memory to absorb these spikes safely.
