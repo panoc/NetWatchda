@@ -77,7 +77,7 @@ ask_opt() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} v1.2 (by ${BOLD}panoc${NC})"
+echo -e "${BOLD}${CYAN}🚀 netwatchda Automated Setup${NC} v1.3 (by ${BOLD}panoc${NC})"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -104,31 +104,7 @@ SERVICE_PATH="/etc/init.d/$SERVICE_NAME"
 mkdir -p "$TMP_DIR"
 
 # ==============================================================================
-#  STEP 1: SECURITY PREFERENCES (ENCRYPTION SELECTION)
-# ==============================================================================
-echo -e "\n${BLUE}--- Security Preferences ---${NC}"
-echo -e "Choose how to store your Discord/Telegram credentials:"
-echo -e ""
-echo -e "${BOLD}${WHITE}1.${NC} OpenSSL (High Security)"
-echo -e "   • ${GREEN}Pros:${NC} AES-256 Encryption. Very secure. Requires 'openssl-util' (~500KB)."
-echo -e "   • ${RED}Cons:${NC} More Ram usage during outage 2-4MB for each event, if happen on the same time needs a lot of RAM. Heavier on old CPUs."
-echo -e "   • ${RED}Cons:${NC} Heavier on old CPUs when sending notifications."
-echo -e ""
-echo -e "${BOLD}${WHITE}2.${NC} Base64 (Low Security)"
-echo -e "   • ${GREEN}Pros:${NC} No extra dependencies. Instant. Very low RAM usage."
-echo -e "   • ${RED}Cons:${NC} Not encryption (just encoding). Can be decoded by anyone."
-
-ask_opt "Select Method" "2"
-if [ "$ANSWER_OPT" = "1" ]; then
-    ENCRYPTION_METHOD="OPENSSL"
-    echo -e "${CYAN}🔒 Selected: OpenSSL (High Security)${NC}"
-else
-    ENCRYPTION_METHOD="BASE64"
-    echo -e "${YELLOW}🔓 Selected: Base64 (Low Security)${NC}"
-fi
-
-# ==============================================================================
-#  STEP 2: SYSTEM READINESS CHECKS
+#  STEP 1: SYSTEM READINESS CHECKS
 # ==============================================================================
 echo -e "\n${BOLD}📦 Checking system readiness...${NC}"
 
@@ -141,7 +117,6 @@ FREE_RAM_KB=$(df /tmp | awk 'NR==2 {print $4}')
 MIN_RAM_KB=4096 # 4MB Threshold
 
 # 3. Check Physical Memory for Execution Method Auto-Detection
-# We check /proc/meminfo for MemTotal. 
 # Rule: >= 256MB (262144 kB) = Parallel (1), < 256MB = Sequential (2)
 TOTAL_PHY_MEM_KB=$(grep MemTotal /proc/meminfo | awk '{print $2}')
 if [ "$TOTAL_PHY_MEM_KB" -ge 262144 ]; then
@@ -158,11 +133,8 @@ MISSING_DEPS=""
 command -v curl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS curl"
 # Check for CA Certificates (needed for secure curl)
 [ -f /etc/ssl/certs/ca-certificates.crt ] || command -v opkg >/dev/null && opkg list-installed | grep -q ca-bundle || MISSING_DEPS="$MISSING_DEPS ca-bundle"
-
-# Dynamic Check: Only check OpenSSL if user selected High Security
-if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
-    command -v openssl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS openssl-util"
-fi
+# Check for OpenSSL (Mandatory now)
+command -v openssl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS openssl-util"
 
 # RAM Guard Check
 if [ "$FREE_RAM_KB" -lt "$MIN_RAM_KB" ]; then
@@ -213,7 +185,7 @@ echo -e "${GREEN}✅ System Ready.${NC}"
 echo -e "${GREEN}✅ Execution Mode Auto-Selected: ${BOLD}${WHITE}$EXEC_MSG${NC}"
 
 # ==============================================================================
-#  STEP 3: SMART UPGRADE / INSTALL CHECK
+#  STEP 2: SMART UPGRADE / INSTALL CHECK
 # ==============================================================================
 KEEP_CONFIG=0
 if [ -f "$CONFIG_FILE" ]; then
@@ -236,16 +208,16 @@ fi
 mkdir -p "$INSTALL_DIR"
 
 # ==============================================================================
-#  STEP 4: CONFIGURATION INPUTS
+#  STEP 3: CONFIGURATION INPUTS
 # ==============================================================================
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e "\n${BLUE}--- Configuration ---${NC}"
     
-    # 4a. Router Name
+    # 3a. Router Name
     printf "${BOLD}🏷️  Enter Router Name (e.g., MyRouter): ${NC}"
     read router_name_input </dev/tty
     
-    # 4b. Discord Setup Loop
+    # 3b. Discord Setup Loop
     DISCORD_ENABLE_VAL="NO"
     DISCORD_WEBHOOK=""
     DISCORD_USERID=""
@@ -295,7 +267,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
     done
 
-    # 4c. Telegram Setup Loop
+    # 3c. Telegram Setup Loop
     TELEGRAM_ENABLE_VAL="NO"
     TELEGRAM_BOT_TOKEN=""
     TELEGRAM_CHAT_ID=""
@@ -343,7 +315,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
     done
     
-    # 4d. Summary Display
+    # 3d. Summary Display
     echo -e "\n${BOLD}${WHITE}Selected Notification Strategy:${NC}"
     if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
         echo -e "   • ${BOLD}${WHITE}BOTH (Redundant)${NC}"
@@ -355,7 +327,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
          echo -e "   • ${BOLD}${WHITE}NONE (Log only mode)${NC}"
     fi
 
-    # 4e. Silent Hours
+    # 3e. Silent Hours
     SILENT_ENABLE_VAL="NO"
     user_silent_start="23"
     user_silent_end="07"
@@ -385,7 +357,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         done
     fi
     
-    # 4f. Heartbeat Logic
+    # 3f. Heartbeat Logic
     HB_VAL="NO"
     HB_SEC="86400"
     HB_MENTION="NO"
@@ -430,7 +402,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
     fi
 
-    # 4g. Monitoring Mode Selection
+    # 3g. Monitoring Mode Selection
     echo -e "\n${BLUE}--- Monitoring Mode ---${NC}"
     echo -e "   1. ${BOLD}${WHITE}Both: Full monitoring (Default)${NC}"
     echo -e "   2. ${BOLD}${WHITE}Device Connectivity only: Pings local network${NC}"
@@ -443,15 +415,13 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         3) EXT_VAL="YES"; DEV_VAL="NO"  ;;
         *) EXT_VAL="YES"; DEV_VAL="YES" ;;
     esac
-
-    # ==============================================================================
-    #  STEP 5: GENERATE CONFIGURATION FILES
+# ==============================================================================
+    #  STEP 4: GENERATE CONFIGURATION FILES
     # ==============================================================================
     cat <<EOF > "$CONFIG_FILE"
 # nwda_settings.conf - Configuration for netwatchda
-# Note: Credentials are stored in .vault.enc (Method: $ENCRYPTION_METHOD)
+# Note: Credentials are stored in .vault.enc (Encrypted)
 ROUTER_NAME="$router_name_input"
-ENCRYPTION_METHOD="$ENCRYPTION_METHOD" # Options: OPENSSL, BASE64
 EXEC_METHOD="$AUTO_EXEC_METHOD" # 1 = Parallel (Fast, High RAM > 256MB), 2 = Sequential (Safe, Low RAM < 256MB)
 
 [Log Settings]
@@ -500,10 +470,11 @@ EOF
     LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
     [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
 fi
+
 # ==============================================================================
-#  STEP 6: SECURE CREDENTIAL VAULT
+#  STEP 5: SECURE CREDENTIAL VAULT (OPENSSL ENFORCED)
 # ==============================================================================
-echo -e "\n${CYAN}🔐 Securing credentials...${NC}"
+echo -e "\n${CYAN}🔐 Securing credentials (OpenSSL AES-256)...${NC}"
 
 # Function: get_hw_key
 # Purpose:  Generates a unique hardware signature.
@@ -525,25 +496,17 @@ get_hw_key() {
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     VAULT_DATA="${DISCORD_WEBHOOK}|${DISCORD_USERID}|${TELEGRAM_BOT_TOKEN}|${TELEGRAM_CHAT_ID}"
     
-    if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
-        # HIGH SECURITY: OpenSSL AES-256-CBC
-        HW_KEY=$(get_hw_key)
-        if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
-            echo -e "${GREEN}✅ Credentials Encrypted (OpenSSL) and locked to this hardware.${NC}"
-        else
-            echo -e "${RED}❌ OpenSSL Encryption failed! Check openssl-util.${NC}"
-        fi
+    # FORCED OPENSSL AES-256-CBC
+    HW_KEY=$(get_hw_key)
+    if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
+        echo -e "${GREEN}✅ Credentials Encrypted and locked to this hardware.${NC}"
     else
-        # LOW SECURITY: Base64 Encoding
-        if echo -n "$VAULT_DATA" | base64 > "$VAULT_FILE"; then
-            echo -e "${YELLOW}✅ Credentials Encoded (Base64).${NC}"
-        else
-            echo -e "${RED}❌ Base64 Encoding failed!${NC}"
-        fi
+        echo -e "${RED}❌ OpenSSL Encryption failed! Check openssl-util.${NC}"
     fi
 fi
+
 # ==============================================================================
-#  STEP 7: GENERATE CORE SCRIPT (THE ENGINE)
+#  STEP 6: GENERATE CORE SCRIPT (THE ENGINE)
 # ==============================================================================
 echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
 
@@ -617,19 +580,14 @@ get_hw_key() {
     echo -n "${seed}${cpu_serial}${mac_addr}" | openssl dgst -sha256 | awk '{print $2}'
 }
 
-# --- HELPER: CREDENTIAL DECRYPTION ---
+# --- HELPER: CREDENTIAL DECRYPTION (OPTIMIZED ONCE-AT-STARTUP) ---
 load_credentials() {
     if [ -f "$VAULT_FILE" ]; then
         local decrypted=""
+        local key=$(get_hw_key)
         
-        # Check Encryption Method
-        if [ "$ENCRYPTION_METHOD" = "OPENSSL" ]; then
-            local key=$(get_hw_key)
-            decrypted=$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "$key" -in "$VAULT_FILE" 2>/dev/null)
-        else
-            # Default to Base64
-            decrypted=$(cat "$VAULT_FILE" | base64 -d 2>/dev/null)
-        fi
+        # Always attempt OpenSSL Decryption
+        decrypted=$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "$key" -in "$VAULT_FILE" 2>/dev/null)
         
         if [ -n "$decrypted" ]; then
             export DISCORD_WEBHOOK=$(echo "$decrypted" | cut -d'|' -f1)
@@ -654,8 +612,7 @@ send_payload() {
     # 1. DISCORD
     if [ "$DISCORD_ENABLE" = "YES" ] && [ -n "$DISCORD_WEBHOOK" ]; then
         if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "DISCORD" ]; then
-             # Ensure JSON description is safe (newlines handled by shell expansion in main logic)
-             # But we double check escaping here for safety
+             # Ensure JSON description is safe
              local json_desc=$(echo "$desc" | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
              
              if curl -s -k -f -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"$title\", \"description\": \"$json_desc\", \"color\": $color}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1; then
@@ -669,7 +626,6 @@ send_payload() {
     # 2. TELEGRAM
     if [ "$TELEGRAM_ENABLE" = "YES" ] && [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
         if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "TELEGRAM" ]; then
-             # Use specialized text if available, otherwise use title+desc
              local t_msg="$title
 $desc"
              if [ -n "$telegram_text" ]; then t_msg="$telegram_text"; fi
@@ -752,28 +708,14 @@ flush_buffer() {
     if [ -f "$OFFLINE_BUFFER" ]; then
         log_msg "[SYSTEM] Internet Restored. Flushing buffer..." "UPTIME"
         
-        # Read file line by line
-        # Using sed to convert ||| to tabs for safer read if needed, but awk handles it fine if strict.
-        # We will use the robust sed replacement approach to ensure splitting works
-        
         while read -r line; do
-             # Use sed to extract fields based on ||| delimiter
-             # Field 1: Title
              local b_title=$(echo "$line" | awk -F '\\|\\|\\|' '{print $1}')
-             # Field 2: Desc (Raw)
              local b_desc_raw=$(echo "$line" | awk -F '\\|\\|\\|' '{print $2}')
-             # Field 3: Color
              local b_color=$(echo "$line" | awk -F '\\|\\|\\|' '{print $3}')
-             # Field 4: Filter
              local b_filter=$(echo "$line" | awk -F '\\|\\|\\|' '{print $4}')
-             # Field 5: Telegram Text (Raw)
              local b_tel_raw=$(echo "$line" | awk -F '\\|\\|\\|' '{print $5}')
              
-             # Restore newlines from __BR__ placeholder
-             # For Discord (JSON), we need literal '\n' string (double escaped)
              local b_desc=$(echo "$b_desc_raw" | sed 's/__BR__/\\n/g')
-             
-             # For Telegram (Text), we need actual newlines
              local b_tel=$(echo "$b_tel_raw" | sed 's/__BR__/\n/g')
              
              sleep 1 
@@ -784,9 +726,8 @@ flush_buffer() {
         log_msg "[SYSTEM] Buffer flushed and cleared." "UPTIME"
     fi
 }
-
 # --- STARTUP SEQUENCE ---
-# 1. Load Config (to get ENCRYPTION_METHOD)
+# 1. Load Config (to get Method/Timers)
 load_config
 # 2. Decrypt Credentials ONCE (Optimized)
 load_credentials
@@ -799,7 +740,7 @@ fi
 # --- MAIN LOGIC LOOP ---
 while true; do
     # Reload config in loop to allow changing intervals/toggles on the fly
-    # But we DO NOT reload credentials here to save CPU
+    # We DO NOT reload credentials here to save CPU
     load_config
     
     NOW_HUMAN=$(date '+%b %d %H:%M:%S')
@@ -899,7 +840,6 @@ $SUMMARY_CONTENT"
                     if [ "$IS_SILENT" -eq 0 ]; then
                         # 1. Force Send Internet Restored
                         send_notification "🟢 Connectivity Restored" "$MSG_D" "3066993" "SUCCESS" "BOTH" "YES" "$MSG_T"
-                        
                         # 2. Flush Device Alerts
                         flush_buffer
                     else
@@ -924,8 +864,8 @@ $SUMMARY_CONTENT"
             LAST_DEV_CHECK=$NOW_SEC
             
             # --- EXECUTION METHOD SWITCH ---
-            # 1 = PARALLEL (Original, Forking)
-            # 2 = SEQUENTIAL (New, Low RAM safe)
+            # 1 = PARALLEL (Original, Forking) - Fast
+            # 2 = SEQUENTIAL (Safe) - Low RAM
             if [ "$EXEC_METHOD" = "1" ]; then
                 # === METHOD 1: PARALLEL EXECUTION ===
                 grep -vE '^#|^$' "$IP_LIST_FILE" | while read -r line; do
@@ -984,7 +924,7 @@ $SUMMARY_CONTENT"
                 done
                 wait
             else
-                # === METHOD 2: SEQUENTIAL EXECUTION (LOW RAM) ===
+                # === METHOD 2: SEQUENTIAL EXECUTION ===
                 grep -vE '^#|^$' "$IP_LIST_FILE" | while read -r line; do
                     TIP=$(echo "$line" | cut -d'@' -f1 | tr -d ' ')
                     NAME=$(echo "$line" | cut -d'@' -f2- | sed 's/^[ \t]*//')
@@ -1037,7 +977,7 @@ $SUMMARY_CONTENT"
                         fi
                     fi
                 done
-                # No 'wait' here
+                # No wait needed for sequential
             fi
         fi
     fi
@@ -1046,7 +986,7 @@ done
 EOF
 chmod +x "$INSTALL_DIR/netwatchda.sh"
 # ==============================================================================
-#  STEP 8: SERVICE CONFIGURATION (INIT.D)
+#  STEP 7: SERVICE CONFIGURATION (INIT.D)
 # ==============================================================================
 echo -e "\n${CYAN}⚙️  Configuring system service...${NC}"
 cat <<EOF > "$SERVICE_PATH"
@@ -1062,8 +1002,6 @@ extra_command "discord" "Test Discord notification"
 extra_command "telegram" "Test Telegram notification"
 extra_command "credentials" "Update Discord/Telegram credentials"
 extra_command "purge" "Interactive smart uninstaller"
-extra_command "enable_service" "Enable service autostart"
-extra_command "disable_service" "Disable service autostart"
 extra_command "reload" "Reload configuration files"
 
 start_service() {
@@ -1115,7 +1053,7 @@ get_hw_key() {
     echo -n "\${seed}\${cpu_serial}\${mac_addr}" | openssl dgst -sha256 | awk '{print \$2}'
 }
 
-# Helper to Decrypt based on chosen method
+# Helper to Decrypt (OpenSSL Only)
 get_decrypted_creds() {
     local vault="$INSTALL_DIR/.vault.enc"
     
@@ -1123,19 +1061,8 @@ get_decrypted_creds() {
         return 1
     fi
     
-    # Check Settings if not loaded
-    if [ -z "\$ENCRYPTION_METHOD" ]; then
-        . "$INSTALL_DIR/nwda_settings.conf" 2>/dev/null
-    fi
-
-    local decrypted=""
-    if [ "\$ENCRYPTION_METHOD" = "OPENSSL" ]; then
-        local key=\$(get_hw_key)
-        decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
-    else
-        # Base64 Fallback
-        decrypted=\$(cat "\$vault" | base64 -d 2>/dev/null)
-    fi
+    local key=\$(get_hw_key)
+    local decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
     echo "\$decrypted"
 }
 
@@ -1201,27 +1128,16 @@ credentials() {
     local new_data="\${d_hook}|\${d_uid}|\${t_tok}|\${t_chat}"
     local vault="$INSTALL_DIR/.vault.enc"
     
-    if [ "\$ENCRYPTION_METHOD" = "OPENSSL" ]; then
-        local key=\$(get_hw_key)
-        if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then
-            echo -e "\033[1;32m✅ Credentials updated and re-encrypted (OpenSSL).\033[0m"
-            /etc/init.d/netwatchda restart
-        else
-            echo -e "\033[1;31m❌ Encryption failed.\033[0m"
-        fi
+    local key=\$(get_hw_key)
+    if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then
+        echo -e "\033[1;32m✅ Credentials updated and re-encrypted (OpenSSL).\033[0m"
+        /etc/init.d/netwatchda restart
     else
-        if echo -n "\$new_data" | base64 > "\$vault"; then
-            echo -e "\033[1;32m✅ Credentials updated (Base64).\033[0m"
-            /etc/init.d/netwatchda restart
-        else
-            echo -e "\033[1;31m❌ Encoding failed.\033[0m"
-        fi
+        echo -e "\033[1;31m❌ Encryption failed.\033[0m"
     fi
 }
 
 reload() {
-    # Send SIGHUP to the running script (if supported) or just restart
-    # Since we use simple loop, restart is safer to pick up config changes
     /etc/init.d/netwatchda restart
 }
 
@@ -1287,7 +1203,7 @@ chmod +x "$SERVICE_PATH"
 "$SERVICE_PATH" restart >/dev/null 2>&1
 
 # ==============================================================================
-#  STEP 9: FINAL SUCCESS MESSAGE & TEST NOTIFICATION
+#  STEP 8: FINAL SUCCESS MESSAGE & TEST NOTIFICATION
 # ==============================================================================
 NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 MSG="**Router:** $router_name_input\n**Time:** $NOW_FINAL\n**Status:** Service Installed & Active"
