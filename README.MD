@@ -176,20 +176,19 @@ Format: IP_ADDRESS @ NAME
 
 ---
 
-## 🛠️ 1 Management via Terminal
+## 🛠️ Management via Terminal
 
 `netwatchdta` installs a comprehensive system service.
 
-| Command | Action |
-| --- | --- |
-| `/etc/init.d/netwatchdta start` | Start the monitoring service. |
-| `/etc/init.d/netwatchdta stop` | Stop the service. |
-| `/etc/init.d/netwatchdta status` | Check if running and view PID. |
-| `/etc/init.d/netwatchdta logs` | View the last 20 lines of the activity log. |
-| `/etc/init.d/netwatchdta credentials` | **Interactive wizard** to update Discord/Telegram keys securely. |
-| `/etc/init.d/netwatchdta discord` | Send a test notification to Discord. |
-| `/etc/init.d/netwatchdta telegram` | Send a test notification to Telegram. |
-| `/etc/init.d/netwatchdta purge` | **Uninstall:** Removes the service, files, and optionally dependencies. |
+| OpenWrt | Linux | Action |
+| --- | --- | --- |
+| `/etc/init.d/netwatchdta start` (or `stop`) | `sudo netwatchdta start` (or `stop`) | **Start/Stop Service** |
+| `/etc/init.d/netwatchdta status` | `sudo netwatchdta status` | **Check Status** |
+| `/etc/init.d/netwatchdta logs` | `sudo netwatchdta logs` | **View Logs** |
+| `/etc/init.d/netwatchdta credentials` | `sudo netwatchdta credentials` | **Manage Credentials** |
+| `/etc/init.d/netwatchdta discord` | `sudo netwatchdta discord` | **Test Discord Alert** |
+| `/etc/init.d/netwatchdta telegram` | `sudo netwatchdta telegram` | **Test Telegram Alert** |
+| `/etc/init.d/netwatchdta purge` | `sudo netwatchdta purge` | **Uninstall** |
 
 ---
 
