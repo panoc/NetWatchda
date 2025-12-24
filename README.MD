@@ -206,10 +206,8 @@ If you prefer the web interface, you can add control buttons to your router's da
 | **View Activity Logs** | `/etc/init.d/netwatchdta logs` |
 | **Restart Service** | `/etc/init.d/netwatchdta restart` |
 
-![Custom Commands](images/custom-commands.png)
-
 <details>
-<summary>🔍 Click to zoom screenshot</summary>
+<summary><strong>🔍 Click to zoom image(/strong></summary>
 
 ![Custom Commands](images/custom-commands.png)
 </details>
