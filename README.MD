@@ -164,7 +164,9 @@ Format: IP_ADDRESS @ NAME
 ```
 </details>
 
-**Note:** After editing files, restart the service:
+```
+
+*After editing files, always restart the service.*
 
 ```sh
 /etc/init.d/netwatchdta restart
