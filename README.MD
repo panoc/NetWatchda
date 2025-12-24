@@ -161,7 +161,7 @@ List the local devices you want to monitor.
 
 ---
 
-## <img src="https://raw.githubusercontent.com/microsoft/fluentui-system-icons/main/assets/Terminal/SVG/ic_fluid_terminal_24_filled.svg" width="50"> Management via Terminal
+## `>_` 1 Management via Terminal
 
 `netwatchda` installs a comprehensive system service.
 
@@ -251,6 +251,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
 
 
 
