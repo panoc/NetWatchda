@@ -162,7 +162,7 @@ Configuration files are located in `/root/netwatchda/`.
 ### 2. `nwda_ips.conf`
 
 <details>
-<summary><strong>List the local devices you want to monitor.</summary></strong>
+<summary><strong>List the local devices you want to monitor.</strong></summary>
 
 ```ini
 Format: IP_ADDRESS @ NAME
@@ -273,6 +273,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 ```
 
 ```
+
 
 
 
