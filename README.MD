@@ -146,15 +146,12 @@ Configuration files are located in `/root/netwatchda/`.
 | `DEV_SCAN_INTERVAL` | How often (in seconds) to check local devices. |
 | `DEV_FAIL_THRESHOLD` | Failed checks before marking a device as DOWN. |
 
-> [!TIP]
 > ### Understanding "Silent Hours"
 > 
 > If you enable Silent Hours (e.g., 23:00 to 07:00):
 > 1. Individual alerts are **paused**.
 > 2. Events are saved to a temporary RAM buffer (`nwda_silent_buffer`).
 > 3. At 07:00, a single **Summary Message** is sent containing all overnight events.
-> 
-> 
 </details>
 
 ### 2. `nwda_ips.conf`
