@@ -224,7 +224,14 @@ To completely remove `netwatchda`, use the built-in purge command:
 /etc/init.d/netwatchda purge
 
 ```
+OR
 
+by the 1 line unistaller:
+
+```sh
+wget --no-check-certificate -qO /tmp/uninstall_netwatchda.sh "https://raw.githubusercontent.com/panoc/NetWatchda/refs/heads/main/uninstall_netwatchda.sh" && sh /tmp/uninstall_netwatchda.sh
+
+```
 You will be prompted to either remove everything (including dependencies like `openssl-util`) or keep your configuration files for a future reinstall.
 
 ---
@@ -238,6 +245,7 @@ This project is licensed under the **GNU General Public License v3.0**.
 
 
 ```
+
 
 
 
