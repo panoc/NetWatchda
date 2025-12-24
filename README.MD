@@ -257,7 +257,7 @@ wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "https://raw.g
 ### Universal Linux
 
 ```sh
-sudo wget --no-check-certificate -qO /tmp/uninstall_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/Linux/uninstall_netwatchdta_linux.sh" && sudo bash /tmp/uninstall_netwatchdta.sh
+wget --no-check-certificate -qO /tmp/uninstall_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/Linux/uninstall_netwatchdta_linux.sh" && sudo bash /tmp/uninstall_netwatchdta.sh
 
 ```
 
