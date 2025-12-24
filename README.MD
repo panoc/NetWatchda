@@ -151,7 +151,7 @@ Configuration files are located in the Base Folder (see above).
 | `DEV_FAIL_THRESHOLD` | Failed checks before marking a device as DOWN. |
 | `DEV_PING_COUNT` | Number of packets per device check. |
 
-> ### Understanding "Silent Hours"
+> ## Understanding "Silent Hours"
 > 
 > 
 > If you enable Silent Hours (e.g., 23:00 to 07:00):
