@@ -1,5 +1,5 @@
 #!/bin/sh
-# netwatchdta Installer - Automated Setup for OpenWrt
+# netwatchdta Installer - Automated Setup for OpenWrt (Optimized + Portable)
 # Copyright (C) 2025 panoc
 # Licensed under the GNU General Public License v3.0
 
@@ -75,7 +75,7 @@ ask_opt() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v1.4 (by ${BOLD}panoc${NC})"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v1.5 (Optimized & Portable)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -128,11 +128,14 @@ fi
 
 # 4. Define Dependency List
 MISSING_DEPS=""
-# Check for curl
-command -v curl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS curl"
-# Check for CA Certificates (needed for secure curl)
+# Check for curl (Standard Linux fallback) OR uclient-fetch (OpenWrt Optimized)
+if ! command -v uclient-fetch >/dev/null 2>&1; then
+    # If no uclient-fetch, we absolutely need curl
+    command -v curl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS curl"
+fi
+# Check for CA Certificates (needed for secure requests)
 [ -f /etc/ssl/certs/ca-certificates.crt ] || command -v opkg >/dev/null && opkg list-installed | grep -q ca-bundle || MISSING_DEPS="$MISSING_DEPS ca-bundle"
-# Check for OpenSSL (Mandatory now)
+# Check for OpenSSL (Mandatory now for Vault)
 command -v openssl >/dev/null 2>&1 || MISSING_DEPS="$MISSING_DEPS openssl-util"
 
 # RAM Guard Check
@@ -237,7 +240,8 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         ask_yn "   ❓ Send test notification to Discord now?"
         if [ "$ANSWER_YN" = "y" ]; then
              echo -e "${YELLOW}   🧪 Sending Discord test...${NC}"
-             curl -s -k -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🧪 Setup Test\", \"description\": \"Discord configured successfully for **$router_name_input**.\", \"color\": 1752220}]}" "$DISCORD_WEBHOOK"
+             # Simple test using curl here, main script uses safe_fetch
+             curl -s -k -H "Content-Type: application/json" -X POST -d "{\"content\": \"<@$DISCORD_USERID>\", \"embeds\": [{\"title\": \"🧪 Setup Test\", \"description\": \"Discord configured successfully for **$router_name_input**.\", \"color\": 1752220}]}" "$DISCORD_WEBHOOK"
              echo ""
              ask_yn "   ❓ Did you receive the notification?"
              
@@ -302,18 +306,6 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
     done
     
-    # 3d. Summary Display
-    echo -e "\n${BOLD}${WHITE}Selected Notification Strategy:${NC}"
-    if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
-        echo -e "   • ${BOLD}${WHITE}BOTH${NC}"
-    elif [ "$DISCORD_ENABLE_VAL" = "YES" ]; then
-         echo -e "   • ${BOLD}${WHITE}Discord Only${NC}"
-    elif [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
-         echo -e "   • ${BOLD}${WHITE}Telegram Only${NC}"
-    else
-         echo -e "   • ${BOLD}${WHITE}NONE (Log only mode)${NC}"
-    fi
-
     # 3e. Silent Hours
     SILENT_ENABLE_VAL="NO"
     user_silent_start="23"
@@ -344,7 +336,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         done
     fi
     
-    # 3f. Heartbeat Logic (Updated with Start Hour)
+    # 3f. Heartbeat Logic
     HB_VAL="NO"
     HB_SEC="86400"
     HB_MENTION="NO"
@@ -364,7 +356,6 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
              HB_SEC=86400 # Default fallback
         fi
 
-        # New: Ask for Start Hour
         while :; do
             printf "${BOLD}   > Start Hour (0-23) [Default 12]: ${NC}"
             read HB_START_HOUR </dev/tty
@@ -380,7 +371,6 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
             HB_MENTION="YES"
         fi
         
-        # --- HEARTBEAT TARGET SELECTOR ---
         if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ "$TELEGRAM_ENABLE_VAL" = "YES" ]; then
              echo -e "${BOLD}${WHITE}   Where to send Heartbeat?${NC}"
              echo -e "   1. ${BOLD}${WHITE}Discord Only${NC}"
@@ -401,57 +391,65 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
     fi
 
+    # 3g. Summary Display (Requested Format)
+    echo -e "\n${BLUE}--- 📋 Configuration Summary ---${NC}"
+    echo -e " • Router Name    : ${BOLD}${WHITE}$router_name_input${NC}"
+    echo -e " • Discord        : ${BOLD}${WHITE}$DISCORD_ENABLE_VAL${NC}"
+    echo -e " • Telegram       : ${BOLD}${WHITE}$TELEGRAM_ENABLE_VAL${NC}"
+    echo -e " • Silent Mode    : ${BOLD}${WHITE}$SILENT_ENABLE_VAL${NC} (Start: $user_silent_start, End: $user_silent_end)"
+    echo -e " • Heartbeat      : ${BOLD}${WHITE}$HB_VAL${NC} (Start Hour: $HB_START_HOUR)"
+    echo -e " • Execution Mode : ${BOLD}${WHITE}$EXEC_MSG${NC}"
+
     # ==============================================================================
-    #  STEP 4: GENERATE CONFIGURATION FILES (UPDATED FORMAT)
+    #  STEP 4: GENERATE CONFIGURATION FILES
     # ==============================================================================
     cat <<EOF > "$CONFIG_FILE"
 # settings.conf - Configuration for netwatchdta
-# Note: Credentials are stored in .vault.enc (Method: OPENSSL)
 ROUTER_NAME="$router_name_input"
-EXEC_METHOD=$AUTO_EXEC_METHOD # 1 = Parallel (Fast, High RAM > 256MB), 2 = Sequential (Safe, Low RAM < 256MB)
+EXEC_METHOD=$AUTO_EXEC_METHOD
 
 [Log Settings]
-UPTIME_LOG_MAX_SIZE=51200 # Max log file size in bytes for uptime tracking. Default is 51200.
-PING_LOG_ENABLE=NO # Enable or disable detailed ping logging (YES/NO). Default is NO.
+UPTIME_LOG_MAX_SIZE=51200
+PING_LOG_ENABLE=NO
 
 [Notification Settings]
-DISCORD_ENABLE=$DISCORD_ENABLE_VAL # Global toggle for Discord notifications (YES/NO). Default is NO.
-TELEGRAM_ENABLE=$TELEGRAM_ENABLE_VAL # Global toggle for Telegram notifications (YES/NO). Default is NO.
-SILENT_ENABLE=$SILENT_ENABLE_VAL # Mutes Discord alerts during specific hours (YES/NO). Default is NO.
-SILENT_START=$user_silent_start # Hour to start silent mode (0-23). Default is 23.
-SILENT_END=$user_silent_end # Hour to end silent mode (0-23). Default is 07.
+DISCORD_ENABLE=$DISCORD_ENABLE_VAL
+TELEGRAM_ENABLE=$TELEGRAM_ENABLE_VAL
+SILENT_ENABLE=$SILENT_ENABLE_VAL
+SILENT_START=$user_silent_start
+SILENT_END=$user_silent_end
 
 [Performance Settings]
-CPU_GUARD_THRESHOLD=2.0 # Max CPU load average allowed before skipping pings. Default is 2.0.
-RAM_GUARD_MIN_FREE=4096 # Minimum free RAM in KB required to run alerts. Default is 4096.
+CPU_GUARD_THRESHOLD=2.0
+RAM_GUARD_MIN_FREE=4096
 
 [Heartbeat]
-HEARTBEAT=$HB_VAL # Periodic I am alive notification (YES/NO). Default is NO.
-HB_INTERVAL=$HB_SEC # Seconds between heartbeat messages. Default is 86400.
-HB_MENTION=$HB_MENTION # Ping User ID in heartbeat messages (YES/NO). Default is NO.
-HB_TARGET=$HB_TARGET # Target for Heartbeat: DISCORD, TELEGRAM, BOTH
-HB_START_HOUR=$HB_START_HOUR # Time of Heartbeat will start, also if 24H interval is selected time of day Heartbeat will notify. Default is 12.
+HEARTBEAT=$HB_VAL
+HB_INTERVAL=$HB_SEC
+HB_MENTION=$HB_MENTION
+HB_TARGET=$HB_TARGET
+HB_START_HOUR=$HB_START_HOUR
 
 [Internet Connectivity]
-EXT_ENABLE=YES # Global toggle for internet monitoring (YES/NO). Default is YES.
-EXT_IP=1.1.1.1 # Primary external IP to monitor. Default is 1.1.1.1.
-EXT_IP2=8.8.8.8 # Secondary external IP for redundancy. Default is 8.8.8.8.
-EXT_SCAN_INTERVAL=60 # Seconds between internet checks. Default is 60.
-EXT_FAIL_THRESHOLD=1 # Failed cycles before internet alert. Default is 1.
-EXT_PING_COUNT=4 # Number of packets per internet check. Default is 4.
-EXT_PING_TIMEOUT=1 # Seconds to wait for ping response. Default is 1.
+EXT_ENABLE=YES
+EXT_IP=1.1.1.1
+EXT_IP2=8.8.8.8
+EXT_SCAN_INTERVAL=60
+EXT_FAIL_THRESHOLD=1
+EXT_PING_COUNT=4
+EXT_PING_TIMEOUT=1
 
 [Local Device Monitoring]
-DEVICE_MONITOR=YES # Enable monitoring of local IPs (YES/NO). Default is YES.
-DEV_SCAN_INTERVAL=10 # Seconds between local device checks. Default is 10.
-DEV_FAIL_THRESHOLD=3 # Failed cycles before device alert. Default is 3.
-DEV_PING_COUNT=4 # Number of packets per device check. Default is 4.
+DEVICE_MONITOR=YES
+DEV_SCAN_INTERVAL=10
+DEV_FAIL_THRESHOLD=3
+DEV_PING_COUNT=4
 
 [Remote Device Monitoring]
-REMOTE_MONITOR=YES # Enable monitoring of Remote IPs (YES/NO). Default is YES.
-REM_SCAN_INTERVAL=30 # Seconds between remote device checks. Default is 30.
-REM_FAIL_THRESHOLD=2 # Failed cycles before remote alert. Default is 2.
-REM_PING_COUNT=4 # Number of packets per remote check. Default is 4.
+REMOTE_MONITOR=YES
+REM_SCAN_INTERVAL=30
+REM_FAIL_THRESHOLD=2
+REM_PING_COUNT=4
 EOF
 
     # Generate default IP list
@@ -459,7 +457,7 @@ EOF
 # Format: IP_ADDRESS @ NAME
 # Example: 192.168.1.50 @ Home Server
 EOF
-    # Attempt to auto-detect local gateway IP for user convenience
+    # Auto-detect local gateway
     LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
     [ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
 
@@ -467,9 +465,9 @@ EOF
     cat <<EOF > "$REMOTE_LIST_FILE"
 # Format: IP_ADDRESS @ NAME
 # Example: 142.250.180.206 @ Google Server
-# Note: These are ONLY checked if Internet is UP (Strict Dependency).
 EOF
 fi
+
 # ==============================================================================
 #  STEP 5: SECURE CREDENTIAL VAULT (OPENSSL ENFORCED)
 # ==============================================================================
@@ -485,12 +483,8 @@ get_hw_key() {
     echo -n "${seed}${cpu_serial}${mac_addr}" | openssl dgst -sha256 | awk '{print $2}'
 }
 
-# Create the Vault Data String
-# Format: DISCORD_WEBHOOK|DISCORD_USERID|TELEGRAM_BOT_TOKEN|TELEGRAM_CHAT_ID
 if [ "$KEEP_CONFIG" -eq 0 ]; then
     VAULT_DATA="${DISCORD_WEBHOOK}|${DISCORD_USERID}|${TELEGRAM_BOT_TOKEN}|${TELEGRAM_CHAT_ID}"
-    
-    # FORCED OPENSSL AES-256-CBC
     HW_KEY=$(get_hw_key)
     if echo -n "$VAULT_DATA" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "$HW_KEY" -out "$VAULT_FILE" 2>/dev/null; then
         echo -e "${GREEN}✅ Credentials Encrypted and locked to this hardware.${NC}"
@@ -498,7 +492,6 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         echo -e "${RED}❌ OpenSSL Encryption failed! Check openssl-util.${NC}"
     fi
 fi
-
 # ==============================================================================
 #  STEP 6: GENERATE CORE SCRIPT (THE ENGINE)
 # ==============================================================================
@@ -535,8 +528,8 @@ if [ ! -f "$NET_STATUS_FILE" ]; then echo "UP" > "$NET_STATUS_FILE"; fi
 LAST_EXT_CHECK=0
 LAST_DEV_CHECK=0
 LAST_REM_CHECK=0
-LAST_HB_CHECK=0 # Initialized to 0 to trigger check logic immediately
-EXT_UP_GLOBAL=1 # 1 = UP, 0 = DOWN (Used for Remote Logic dependency)
+LAST_HB_CHECK=0
+EXT_UP_GLOBAL=1
 
 # --- HELPER: LOGGING ---
 log_msg() {
@@ -574,7 +567,7 @@ get_hw_key() {
     echo -n "${seed}${cpu_serial}${mac_addr}" | openssl dgst -sha256 | awk '{print $2}'
 }
 
-# --- HELPER: CREDENTIAL DECRYPTION (OPTIMIZED ONCE-AT-STARTUP) ---
+# --- HELPER: CREDENTIAL DECRYPTION ---
 load_credentials() {
     if [ -f "$VAULT_FILE" ]; then
         local decrypted=""
@@ -593,6 +586,40 @@ load_credentials() {
     return 1
 }
 
+# ==============================================================================
+#  PORTABLE FETCH WRAPPER (RAM OPTIMIZATION + COMPATIBILITY)
+# ==============================================================================
+safe_fetch() {
+    local url="$1"
+    local data="$2"   # JSON Payload
+    local header="$3" # e.g. "Content-Type: application/json"
+
+    # STRATEGY 1: OpenWrt Native (Optimized RAM ~0.2MB)
+    if command -v uclient-fetch >/dev/null 2>&1; then
+        # Check if this version supports headers (OpenWrt 23.05+)
+        if uclient-fetch --help 2>&1 | grep -q "\-\-header"; then
+            uclient-fetch --header="$header" --post-data="$data" "$url" >/dev/null 2>&1
+            return $?
+        fi
+        # Fallback for old OpenWrt (no header support) -> Continues to Curl
+    fi
+
+    # STRATEGY 2: Standard Linux (Curl ~4.0MB)
+    if command -v curl >/dev/null 2>&1; then
+        curl -s -k -X POST -H "$header" -d "$data" "$url" >/dev/null 2>&1
+        return $?
+    fi
+
+    # STRATEGY 3: Wget (Standard Linux Alternative)
+    if command -v wget >/dev/null 2>&1; then
+        wget -q --no-check-certificate --header="$header" \
+             --post-data="$data" "$url" -O /dev/null
+        return $?
+    fi
+    
+    return 1 # Failure: No tool found
+}
+
 # --- INTERNAL: SEND PAYLOAD ---
 send_payload() {
     local title="$1"
@@ -602,11 +629,22 @@ send_payload() {
     local telegram_text="$5" 
     local success=0
 
-    # 1. DISCORD
+    # 1. DISCORD LOGIC (Updated for Mentions)
     if [ "$DISCORD_ENABLE" = "YES" ] && [ -n "$DISCORD_WEBHOOK" ]; then
         if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "DISCORD" ]; then
              local json_desc=$(echo "$desc" | awk '{printf "%s\\n", $0}' | sed 's/\\n$//')
-             if curl -s -k -f -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"$title\", \"description\": \"$json_desc\", \"color\": $color}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1; then
+             local d_payload
+             
+             # If Color is RED (Alert: 15548997) or it's a Heartbeat with mention, enable PING
+             if { [ "$color" = "15548997" ] || [ "$color" = "1752220" ]; } && [ -n "$DISCORD_USERID" ] && [ "$HB_MENTION" != "NO" ]; then
+                # Inject mention into 'content' field for reliable pings
+                d_payload="{\"content\": \"<@$DISCORD_USERID>\", \"embeds\": [{\"title\": \"$title\", \"description\": \"$json_desc\", \"color\": $color}]}"
+             else
+                # Clean embed without ping
+                d_payload="{\"embeds\": [{\"title\": \"$title\", \"description\": \"$json_desc\", \"color\": $color}]}"
+             fi
+             
+             if safe_fetch "$DISCORD_WEBHOOK" "$d_payload" "Content-Type: application/json"; then
                 success=1
              else
                 log_msg "[ERROR] Discord send failed." "UPTIME"
@@ -614,15 +652,19 @@ send_payload() {
         fi
     fi
 
-    # 2. TELEGRAM
+    # 2. TELEGRAM LOGIC
     if [ "$TELEGRAM_ENABLE" = "YES" ] && [ -n "$TELEGRAM_BOT_TOKEN" ] && [ -n "$TELEGRAM_CHAT_ID" ]; then
         if [ -z "$filter" ] || [ "$filter" = "BOTH" ] || [ "$filter" = "TELEGRAM" ]; then
              local t_msg="$title
 $desc"
              if [ -n "$telegram_text" ]; then t_msg="$telegram_text"; fi
-             if curl -s -k -f -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-                -d chat_id="$TELEGRAM_CHAT_ID" \
-                -d text="$t_msg" >/dev/null 2>&1; then
+             
+             # Construct minimal JSON for uclient-fetch/curl compatibility
+             # We escape line breaks for JSON safety
+             local t_safe_text=$(echo "$t_msg" | sed 's/"/\\"/g' | awk '{printf "%s\\n", $0}')
+             local t_payload="{\"chat_id\": \"$TELEGRAM_CHAT_ID\", \"text\": \"$t_safe_text\"}"
+             
+             if safe_fetch "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" "$t_payload" "Content-Type: application/json"; then
                 success=1
              else
                 log_msg "[ERROR] Telegram send failed." "UPTIME"
@@ -696,6 +738,7 @@ flush_buffer() {
         log_msg "[SYSTEM] Buffer flushed." "UPTIME"
     fi
 }
+
 # --- STARTUP SEQUENCE ---
 load_config
 load_credentials
@@ -705,10 +748,7 @@ else
     log_msg "[WARNING] Vault error or missing." "UPTIME"
 fi
 
-# Initial Heartbeat Logic to handle HB_START_HOUR
 if [ "$HEARTBEAT" = "YES" ]; then
-    # Fake the last check to be 'now' so the loop calculates from this point
-    # We will let the specific hour logic inside the loop handle the first trigger
     LAST_HB_CHECK=$(date +%s)
 fi
 
@@ -725,26 +765,22 @@ while true; do
         continue
     fi
 
-    # --- HEARTBEAT LOGIC WITH START HOUR ---
+    # --- HEARTBEAT LOGIC ---
     if [ "$HEARTBEAT" = "YES" ]; then 
         HB_DIFF=$((NOW_SEC - LAST_HB_CHECK))
         if [ "$HB_DIFF" -ge "$HB_INTERVAL" ]; then
             CAN_SEND=0
-            # If default interval (24h), align with hour
             if [ "$HB_INTERVAL" -ge 86000 ]; then
-                 # If we are in the correct hour (allow match)
                  if [ "$CUR_HOUR" -eq "$HB_START_HOUR" ]; then CAN_SEND=1; fi
-                 # Force send if we missed it by a lot (drift safety)
                  if [ "$HB_DIFF" -gt 90000 ]; then CAN_SEND=1; fi
             else
-                 # Non-24h interval: Just respect the timer
                  CAN_SEND=1
             fi
             
             if [ "$CAN_SEND" -eq 1 ]; then
                 LAST_HB_CHECK=$NOW_SEC
                 HB_MSG="**Router:** $ROUTER_NAME\n**Status:** Systems Operational\n**Time:** $NOW_HUMAN"
-                if [ "$HB_MENTION" = "YES" ]; then HB_MSG="$HB_MSG\n<@$DISCORD_USERID>"; fi
+                # Mention logic handled inside send_payload via HB_MENTION
                 TARGET=${HB_TARGET:-BOTH}
                 send_notification "💓 Heartbeat Report" "$HB_MSG" "1752220" "INFO" "$TARGET" "NO" "💓 Heartbeat - $ROUTER_NAME - $NOW_HUMAN"
                 log_msg "Heartbeat sent ($TARGET)." "UPTIME"
@@ -782,7 +818,6 @@ $SUMMARY_CONTENT"
             if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP" > /dev/null 2>&1; then EXT_UP=1;
             elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP2" > /dev/null 2>&1; then EXT_UP=1; fi
             
-            # Global Variable Update for Remote Logic
             EXT_UP_GLOBAL=$EXT_UP
 
             if [ "$EXT_UP" -eq 0 ]; then
@@ -796,10 +831,7 @@ $SUMMARY_CONTENT"
                              echo "Internet Down: $NOW_HUMAN" >> "$SILENT_BUFFER"
                          fi
                     else
-                         # Alert logic logic handles buffering via send_notification if truly down
-                         # But since net_stat is DOWN, send_notification will buffer it automatically.
-                         # This block is just for logging mainly.
-                         :
+                         : # Alert handled implicitly by buffering
                     fi
                 fi
             else
@@ -828,7 +860,6 @@ $SUMMARY_CONTENT"
             fi
         fi
     else
-        # If internet monitoring is disabled, assume it is UP so Remote checks run
         EXT_UP_GLOBAL=1
     fi
 
@@ -871,6 +902,7 @@ $SUMMARY_CONTENT"
                          echo "${TYPE} $NAME DOWN: $TS" >> "$SILENT_BUFFER"
                      fi
                  else
+                     # Note: Color 15548997 is RED, triggering Mentions in send_payload
                      send_notification "🔴 ${TYPE} Down" "$D_MSG" "15548997" "ALERT" "BOTH" "NO" "$T_MSG"
                  fi
             fi
@@ -882,7 +914,7 @@ $SUMMARY_CONTENT"
         if [ $((NOW_SEC - LAST_DEV_CHECK)) -ge "$DEV_SCAN_INTERVAL" ]; then
             LAST_DEV_CHECK=$NOW_SEC
             if [ "$EXEC_METHOD" -eq 1 ]; then
-                # PARALLEL EXECUTION
+                # PARALLEL
                 grep -vE '^#|^$' "$IP_LIST_FILE" | while read -r line; do
                     (
                         TIP=$(echo "$line" | cut -d'@' -f1 | tr -d ' ')
@@ -892,7 +924,7 @@ $SUMMARY_CONTENT"
                     ) &
                 done; wait
             else
-                # SEQUENTIAL EXECUTION
+                # SEQUENTIAL
                 grep -vE '^#|^$' "$IP_LIST_FILE" | while read -r line; do
                     TIP=$(echo "$line" | cut -d'@' -f1 | tr -d ' ')
                     NAME=$(echo "$line" | cut -d'@' -f2- | sed 's/^[ \t]*//')
@@ -903,8 +935,7 @@ $SUMMARY_CONTENT"
         fi
     fi
 
-    # --- REMOTE MONITORING (STRICT INTERNET DEPENDENCY) ---
-    # Logic: Only run if Internet (EXT_UP_GLOBAL) is UP (1).
+    # --- REMOTE MONITORING ---
     if [ "$REMOTE_MONITOR" = "YES" ] && [ "$EXT_UP_GLOBAL" -eq 1 ]; then
         if [ $((NOW_SEC - LAST_REM_CHECK)) -ge "$REM_SCAN_INTERVAL" ]; then
             LAST_REM_CHECK=$NOW_SEC
@@ -1010,6 +1041,7 @@ discord() {
     local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
     if [ -n "\$webhook" ]; then
         echo "Sending Discord test..."
+        # Using curl for test command only (not critical path)
         curl -s -k -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook"
         echo "Sent."
     else
@@ -1143,6 +1175,7 @@ NOW_FINAL=$(date '+%b %d, %Y %H:%M:%S')
 MSG="**Router:** $router_name_input\n**Time:** $NOW_FINAL\n**Status:** Service Installed & Active"
 
 if [ "$DISCORD_ENABLE_VAL" = "YES" ] && [ -n "$DISCORD_WEBHOOK" ]; then
+    # Final success message uses portable Curl here (one-time event, safe)
     curl -s -k -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🚀 netwatchdta Service Started\", \"description\": \"$MSG\", \"color\": 1752220}]}" "$DISCORD_WEBHOOK" >/dev/null 2>&1
 fi
 
