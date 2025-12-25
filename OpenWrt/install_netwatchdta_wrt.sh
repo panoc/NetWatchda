@@ -114,7 +114,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.0 (Final)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.1 (Final)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -1080,6 +1080,11 @@ chmod +x "$INSTALL_DIR/netwatchdta.sh"
 #  STEP 7: SERVICE CONFIGURATION (INIT.D)
 # ==============================================================================
 echo -e "\n${CYAN}⚙️  Configuring system service...${NC}"
+
+# NOTE: We use mixed escaping here. 
+# $INSTALL_DIR is expanded NOW (during install).
+# \$variable is escaped so it is written literally to the file for later use.
+
 cat <<EOF > "$SERVICE_PATH"
 #!/bin/sh /etc/rc.common
 START=99
@@ -1134,19 +1139,18 @@ load_functions() {
 
 get_hw_key() {
     local seed="nwdta_v1_secure_seed_2025"
-    local cpu_serial=$(grep -i "serial" /proc/cpuinfo | head -1 | awk '{print $3}')
-    [ -z "$cpu_serial" ] && cpu_serial="unknown_serial"
-    local mac_addr=$(cat /sys/class/net/*/address 2>/dev/null | grep -v "00:00:00:00:00:00" | sort | head -1)
-    [ -z "$mac_addr" ] && mac_addr="00:00:00:00:00:00"
-    echo -n "${seed}${cpu_serial}${mac_addr}" | openssl dgst -sha256 | awk '{print $2}'
+    local cpu_serial=\$(grep -i "serial" /proc/cpuinfo | head -1 | awk '{print \$3}')
+    [ -z "\$cpu_serial" ] && cpu_serial="unknown_serial"
+    local mac_addr=\$(cat /sys/class/net/*/address 2>/dev/null | grep -v "00:00:00:00:00:00" | sort | head -1)
+    [ -z "\$mac_addr" ] && mac_addr="00:00:00:00:00:00"
+    echo -n "\${seed}\${cpu_serial}\${mac_addr}" | openssl dgst -sha256 | awk '{print \$2}'
 }
 
 get_decrypted_creds() {
     local vault="$INSTALL_DIR/.vault.enc"
     if [ ! -f "\$vault" ]; then return 1; fi
     local key=\$(get_hw_key)
-    local decrypted=\$(openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null)
-    echo "\$decrypted"
+    openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null
 }
 
 discord() {
@@ -1155,7 +1159,6 @@ discord() {
     local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
     if [ -n "\$webhook" ]; then
         echo "Sending Discord test..."
-        # NOTE: Using uclient-fetch with -O /dev/null for safety
         if command -v uclient-fetch >/dev/null 2>&1 && uclient-fetch --help 2>&1 | grep -q "\-\-header"; then
             uclient-fetch --no-check-certificate --header="Content-Type: application/json" --post-data="{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook" -O /dev/null >/dev/null 2>&1
         else
@@ -1196,6 +1199,8 @@ credentials() {
     
     load_functions
     local current=\$(get_decrypted_creds)
+    
+    # Extract using Shell expansion (safe) or cut
     local d_hook=\$(echo "\$current" | cut -d'|' -f1)
     local d_uid=\$(echo "\$current" | cut -d'|' -f2)
     local t_tok=\$(echo "\$current" | cut -d'|' -f3)
@@ -1217,6 +1222,8 @@ credentials() {
     local new_data="\${d_hook}|\${d_uid}|\${t_tok}|\${t_chat}"
     local vault="$INSTALL_DIR/.vault.enc"
     local key=\$(get_hw_key)
+    
+    # We use explicit variables here to ensure it writes correctly
     if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then
         echo -e "\033[1;32m✅ Credentials updated and re-encrypted (OpenSSL).\033[0m"
         /etc/init.d/netwatchdta restart
