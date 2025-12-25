@@ -108,7 +108,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v0.2 (Final)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.4 (Full/Fix)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -234,7 +234,6 @@ if [ -f "$CONFIG_FILE" ]; then
 fi
 
 mkdir -p "$INSTALL_DIR"
-
 # ==============================================================================
 #  STEP 3: CONFIGURATION INPUTS
 # ==============================================================================
@@ -431,10 +430,13 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e " • Router Name    : ${BOLD}${WHITE}$router_name_input${NC}"
     echo -e " • Discord        : ${BOLD}${WHITE}$DISCORD_ENABLE_VAL${NC}"
     echo -e " • Telegram       : ${BOLD}${WHITE}$TELEGRAM_ENABLE_VAL${NC}"
-    echo -e " • Silent Mode    : ${BOLD}${WHITE}$SILENT_ENABLE_VAL${NC} (Start: $user_silent_start, End: $user_silent_end)"
-    echo -e " • Heartbeat      : ${BOLD}${WHITE}$HB_VAL${NC} (Start Hour: $HB_START_HOUR)"
+    echo -e " • Silent Mode    : ${BOLD}${WHITE}$SILENT_ENABLE_VAL${NC}"
+    echo -e "   Start: $user_silent_start, End: $user_silent_end"
+    echo -e " • Heartbeat      : ${BOLD}${WHITE}$HB_VAL${NC}"
+    echo -e "   Start Hour: $HB_START_HOUR"
     echo -e " • Execution Mode : ${BOLD}${WHITE}$EXEC_MSG${NC}"
-	# ==============================================================================
+
+    # ==============================================================================
     #  STEP 4: GENERATE CONFIGURATION FILES
     # ==============================================================================
     cat <<EOF > "$CONFIG_FILE"
@@ -541,7 +543,6 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         echo -e "${RED}❌ OpenSSL Encryption failed! Check openssl-util.${NC}"
     fi
 fi
-
 # ==============================================================================
 #  STEP 6: GENERATE CORE SCRIPT (THE ENGINE)
 # ==============================================================================
@@ -844,8 +845,10 @@ $SUMMARY_CONTENT" "NO"
             LAST_EXT_CHECK=$NOW_SEC
             FD="$TMP_DIR/nwdta_ext_d"; FT="$TMP_DIR/nwdta_ext_t"; FC="$TMP_DIR/nwdta_ext_c"
             EXT_UP=0
-            if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP" > /dev/null 2>&1; then EXT_UP=1;
-            elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -W "$EXT_PING_TIMEOUT" "$EXT_IP2" > /dev/null 2>&1; then EXT_UP=1; fi
+            # EXTERNAL PING CHECK
+            # We use -w (lowercase) for compatibility.
+            if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -w "$EXT_PING_TIMEOUT" "$EXT_IP" > /dev/null 2>&1; then EXT_UP=1;
+            elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -w "$EXT_PING_TIMEOUT" "$EXT_IP2" > /dev/null 2>&1; then EXT_UP=1; fi
             EXT_UP_GLOBAL=$EXT_UP
 
             if [ "$EXT_UP" -eq 0 ]; then
@@ -887,7 +890,8 @@ $SUMMARY_CONTENT" "NO"
     else
         EXT_UP_GLOBAL=1
     fi
-	# --- SHARED CHECK FUNCTION ---
+
+    # --- SHARED CHECK FUNCTION ---
     check_ip_logic() {
         local TIP=$1; local NAME=$2; local TYPE=$3; local THRESH=$4; local P_COUNT=$5
         local N_SEC=$6; local N_HUM=$7
@@ -896,7 +900,7 @@ $SUMMARY_CONTENT" "NO"
         TIP=$(echo "$TIP" | tr -d '\r')
         NAME=$(echo "$NAME" | tr -d '\r')
 
-        # TIMEOUT LOGIC FIX:
+        # NEW TIMEOUT LOGIC
         # Determine strict timeout based on Type using new config variables
         local STRICT_TIMEOUT=1
         if [ "$TYPE" = "Device" ]; then STRICT_TIMEOUT="${DEV_PING_TIMEOUT:-1}"; fi
@@ -914,7 +918,8 @@ $SUMMARY_CONTENT" "NO"
         # 1. Use variable timeout ($STRICT_TIMEOUT)
         # 2. Check EXIT CODE (0=Success, 1=Fail) instead of output string
         # 3. Suppress output completely
-        if ping -q -c "$P_COUNT" -W "$STRICT_TIMEOUT" "$TIP" >/dev/null 2>&1; then
+        # 4. Use -w (lowercase) for broad OpenWrt compatibility
+        if ping -q -c "$P_COUNT" -w "$STRICT_TIMEOUT" "$TIP" >/dev/null 2>&1; then
             if [ -f "$FD" ]; then
                 local DSTART; local DSSEC
                 read DSTART < "$FT"
@@ -1014,7 +1019,6 @@ $SUMMARY_CONTENT" "NO"
 done
 EOF
 chmod +x "$INSTALL_DIR/netwatchdta.sh"
-
 # ==============================================================================
 #  STEP 7: SERVICE CONFIGURATION (INIT.D)
 # ==============================================================================
