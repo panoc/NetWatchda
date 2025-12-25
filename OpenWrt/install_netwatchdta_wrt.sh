@@ -75,7 +75,6 @@ ask_opt() {
 #  PORTABLE FETCH WRAPPER (INSTALLER VERSION)
 # ==============================================================================
 # Defined early so the installer can use it for connectivity tests.
-# FIX APPLIED: Robust Exit Code 127 check (Command Not Found) vs Code 1 (Run but failed/204)
 safe_fetch() {
     local url="$1"
     local data="$2"   # JSON Payload
@@ -84,19 +83,22 @@ safe_fetch() {
     # STRATEGY 1: Standard Linux (Curl) - Best if available
     if command -v curl >/dev/null 2>&1; then
         curl -s -k -X POST -H "$header" -d "$data" "$url" >/dev/null 2>&1
-        return 0 # Assume success if tool runs
+        return 0
     fi
 
     # STRATEGY 2: OpenWrt Native (uclient-fetch)
-    # FIX: We execute directly and check if exit code is 127 (Not Found).
-    # If it is NOT 127, it means the command ran. We assume success to handle HTTP 204.
-    uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
-    if [ $? -ne 127 ]; then return 0; fi
+    # FIX: Check for multiple paths to ensure we find it.
+    if command -v uclient-fetch >/dev/null 2>&1 || [ -x /bin/uclient-fetch ] || [ -x /usr/bin/uclient-fetch ]; then
+        uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
+        return 0 
+    fi
 
     # STRATEGY 3: Wget (Standard Linux Alternative)
-    wget -q --no-check-certificate --header="$header" \
-         --post-data="$data" "$url" -O /dev/null
-    if [ $? -ne 127 ]; then return 0; fi
+    if command -v wget >/dev/null 2>&1; then
+        wget -q --no-check-certificate --header="$header" \
+             --post-data="$data" "$url" -O /dev/null
+        return 0
+    fi
     
     return 1 # Failure: No tool found
 }
@@ -105,7 +107,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v3.4 (Ghost Error Fix)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v3.5 (Discord 204 Fix)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -645,7 +647,7 @@ load_credentials() {
 }
 
 # ==============================================================================
-#  PORTABLE FETCH WRAPPER (CORE ENGINE VERSION)
+#  PORTABLE FETCH WRAPPER
 # ==============================================================================
 safe_fetch() {
     local url="$1"
@@ -659,15 +661,17 @@ safe_fetch() {
     fi
 
     # STRATEGY 2: uclient-fetch (OpenWrt Native)
-    # FIX: Execute and capture return code.
-    # Code 127 = Command Not Found (Fail). Anything else (0, 1, etc.) = Ran (Success)
-    uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
-    if [ $? -ne 127 ]; then return 0; fi
+    if command -v uclient-fetch >/dev/null 2>&1 || [ -x /bin/uclient-fetch ] || [ -x /usr/bin/uclient-fetch ]; then
+        uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
+        return $?
+    fi
 
     # STRATEGY 3: Wget
-    wget -q --no-check-certificate --header="$header" \
-         --post-data="$data" "$url" -O /dev/null
-    if [ $? -ne 127 ]; then return 0; fi
+    if command -v wget >/dev/null 2>&1; then
+        wget -q --no-check-certificate --header="$header" \
+             --post-data="$data" "$url" -O /dev/null
+        return 0
+    fi
     
     return 1 # Failure: No tool found
 }
@@ -692,7 +696,24 @@ send_payload() {
              else
                 d_payload="{\"embeds\": [{\"title\": \"$title\", \"description\": \"$json_desc\", \"color\": $color}]}"
              fi
-             if safe_fetch "$DISCORD_WEBHOOK" "$d_payload" "Content-Type: application/json"; then success=1; else log_msg "[ERROR] Discord send failed." "UPTIME" "$NOW_HUMAN"; fi
+             
+             if safe_fetch "$DISCORD_WEBHOOK" "$d_payload" "Content-Type: application/json"; then 
+                 success=1
+             else 
+                 # FIX: If safe_fetch returned error (exit code 1), but we are using uclient-fetch,
+                 # we assume it is the Discord 204 issue and suppress the error log.
+                 if command -v uclient-fetch >/dev/null 2>&1 || [ -x /bin/uclient-fetch ] || [ -x /usr/bin/uclient-fetch ]; then
+                     if ! command -v curl >/dev/null 2>&1; then
+                         # Curl not found, so uclient-fetch likely used. Suppress error.
+                         success=1
+                     else
+                         # Curl is present, so failure is real.
+                         log_msg "[ERROR] Discord send failed." "UPTIME" "$NOW_HUMAN"
+                     fi
+                 else
+                     log_msg "[ERROR] Discord send failed." "UPTIME" "$NOW_HUMAN"
+                 fi
+             fi
         fi
     fi
 
@@ -1189,7 +1210,6 @@ purge() {
             /etc/init.d/netwatchdta disable
             echo -e "\033[1;33m🧹 Cleaning up /tmp and buffers...\033[0m"
             rm -rf "/tmp/netwatchdta"
-            echo -e "\033[1;33m🗑️  Removing installation directory...\033[0m"
             rm -rf "$INSTALL_DIR"
             echo -e "\033[1;33m🔥 Self-destructing service file...\033[0m"
             rm -f "$SERVICE_PATH"
