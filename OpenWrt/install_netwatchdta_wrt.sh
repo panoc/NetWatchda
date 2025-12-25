@@ -114,7 +114,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v1.91 (Full Verbose)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.0 (Final)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -664,7 +664,7 @@ safe_fetch() {
     if command -v uclient-fetch >/dev/null 2>&1; then
         # Check if this version supports headers (OpenWrt 23.05+)
         if uclient-fetch --help 2>&1 | grep -q "\-\-header"; then
-            # CRITICAL FIX: -O /dev/null ensures no file writing in background mode
+            # FIX: -O /dev/null ensures no file writing in background mode
             uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
             return $?
         fi
@@ -827,6 +827,7 @@ while true; do
     load_config
     
     # Calculate Time ONCE per loop to save 'date' calls
+    # FIX: REMOVED 'local' FROM GLOBAL LOOP
     NOW_HUMAN=$(date '+%b %d %H:%M:%S')
     NOW_SEC=$(date +%s)
     CUR_HOUR=$(date +%H)
@@ -931,7 +932,7 @@ $SUMMARY_CONTENT" "NO"
                     log_msg "[SUCCESS] INTERNET UP (Down $DR)" "UPTIME" "$NOW_HUMAN"
                     
                     if [ "$IS_SILENT" -eq 0 ]; then
-                        # Connectivity restore: Use NET mention flag
+                        # Connectivity restore: Use NET mention flag (optional, usually users want mention on UP too if they want it on DOWN)
                         send_notification "🟢 Connectivity Restored" "$MSG_D" "3066993" "SUCCESS" "BOTH" "YES" "$MSG_T" "$DISCORD_MENTION_NET"
                         flush_buffer
                     else
@@ -1024,11 +1025,12 @@ $SUMMARY_CONTENT" "NO"
                 case "$line" in \#*|"") continue ;; esac
                 
                 # Parse using shell expansion (fast!)
-                local TIP="${line%%@*}"
+                # FIX: REMOVED 'local' FROM MAIN LOOP VARS TO PREVENT CRASH
+                TIP="${line%%@*}"
                 TIP="${TIP%% }" # Trim trailing space
                 TIP="${TIP## }" # Trim leading space
                 
-                local NAME="${line#*@}"
+                NAME="${line#*@}"
                 NAME="${NAME## }" # Trim leading space
                 [ "$NAME" = "$line" ] && NAME="$TIP" # Handle missing @ case
                 
@@ -1051,10 +1053,11 @@ $SUMMARY_CONTENT" "NO"
             
             while read -r line; do
                 case "$line" in \#*|"") continue ;; esac
-                local TIP="${line%%@*}"
+                # FIX: REMOVED 'local' FROM MAIN LOOP VARS TO PREVENT CRASH
+                TIP="${line%%@*}"
                 TIP="${TIP%% }"
                 TIP="${TIP## }"
-                local NAME="${line#*@}"
+                NAME="${line#*@}"
                 NAME="${NAME## }"
                 [ "$NAME" = "$line" ] && NAME="$TIP"
                 
