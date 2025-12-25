@@ -75,7 +75,7 @@ ask_opt() {
 #  PORTABLE FETCH WRAPPER (INSTALLER VERSION)
 # ==============================================================================
 # Defined early so the installer can use it for connectivity tests.
-# FIX APPLIED: "Fire and Forget" logic for uclient-fetch to handle HTTP 204.
+# FIX APPLIED: Robust Exit Code 127 check (Command Not Found) vs Code 1 (Run but failed/204)
 safe_fetch() {
     local url="$1"
     local data="$2"   # JSON Payload
@@ -88,19 +88,15 @@ safe_fetch() {
     fi
 
     # STRATEGY 2: OpenWrt Native (uclient-fetch)
-    # FIX: We ignore the exit code here because uclient-fetch returns error on empty 
-    # responses (HTTP 204), which is normal for Discord/Telegram webhooks.
-    if command -v uclient-fetch >/dev/null 2>&1; then
-        uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
-        return 0 # Force success
-    fi
+    # FIX: We execute directly and check if exit code is 127 (Not Found).
+    # If it is NOT 127, it means the command ran. We assume success to handle HTTP 204.
+    uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
+    if [ $? -ne 127 ]; then return 0; fi
 
     # STRATEGY 3: Wget (Standard Linux Alternative)
-    if command -v wget >/dev/null 2>&1; then
-        wget -q --no-check-certificate --header="$header" \
-             --post-data="$data" "$url" -O /dev/null
-        return 0
-    fi
+    wget -q --no-check-certificate --header="$header" \
+         --post-data="$data" "$url" -O /dev/null
+    if [ $? -ne 127 ]; then return 0; fi
     
     return 1 # Failure: No tool found
 }
@@ -109,7 +105,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v3.3 (Native Fix)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v3.4 (Ghost Error Fix)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -651,7 +647,6 @@ load_credentials() {
 # ==============================================================================
 #  PORTABLE FETCH WRAPPER (CORE ENGINE VERSION)
 # ==============================================================================
-# FIX APPLIED: "Fire and Forget" logic for uclient-fetch to handle HTTP 204.
 safe_fetch() {
     local url="$1"
     local data="$2"
@@ -660,21 +655,19 @@ safe_fetch() {
     # STRATEGY 1: Curl
     if command -v curl >/dev/null 2>&1; then
         curl -s -k -X POST -H "$header" -d "$data" "$url" >/dev/null 2>&1
-        return 0 # Assume success if tool executed
+        return 0 # Assume success if executed
     fi
 
     # STRATEGY 2: uclient-fetch (OpenWrt Native)
-    if command -v uclient-fetch >/dev/null 2>&1; then
-        uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
-        return 0 # Explicitly return success to ignore false errors from HTTP 204
-    fi
+    # FIX: Execute and capture return code.
+    # Code 127 = Command Not Found (Fail). Anything else (0, 1, etc.) = Ran (Success)
+    uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
+    if [ $? -ne 127 ]; then return 0; fi
 
     # STRATEGY 3: Wget
-    if command -v wget >/dev/null 2>&1; then
-        wget -q --no-check-certificate --header="$header" \
-             --post-data="$data" "$url" -O /dev/null
-        return 0
-    fi
+    wget -q --no-check-certificate --header="$header" \
+         --post-data="$data" "$url" -O /dev/null
+    if [ $? -ne 127 ]; then return 0; fi
     
     return 1 # Failure: No tool found
 }
@@ -863,7 +856,6 @@ $SUMMARY_CONTENT" "NO"
             EXT_UP_GLOBAL=$EXT_UP
 
             if [ "$EXT_UP" -eq 0 ]; then
-                # FIX: No 'local' here.
                 C=0
                 [ -f "$FC" ] && read C < "$FC"
                 C=$((C+1))
@@ -878,7 +870,6 @@ $SUMMARY_CONTENT" "NO"
             else
                 if [ -f "$FD" ]; then
                     echo "UP" > "$NET_STATUS_FILE"
-                    # FIX: No 'local' here.
                     START_TIME=""
                     START_SEC=""
                     [ -f "$FT" ] && read START_TIME < "$FT"
