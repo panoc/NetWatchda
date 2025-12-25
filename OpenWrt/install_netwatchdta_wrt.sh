@@ -108,7 +108,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.1 (Final)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v0.2 (Final)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -434,8 +434,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e " • Silent Mode    : ${BOLD}${WHITE}$SILENT_ENABLE_VAL${NC} (Start: $user_silent_start, End: $user_silent_end)"
     echo -e " • Heartbeat      : ${BOLD}${WHITE}$HB_VAL${NC} (Start Hour: $HB_START_HOUR)"
     echo -e " • Execution Mode : ${BOLD}${WHITE}$EXEC_MSG${NC}"
-
-    # ==============================================================================
+	# ==============================================================================
     #  STEP 4: GENERATE CONFIGURATION FILES
     # ==============================================================================
     cat <<EOF > "$CONFIG_FILE"
@@ -486,12 +485,14 @@ DEVICE_MONITOR=YES # Enable monitoring of local IPs (YES/NO). Default is YES.
 DEV_SCAN_INTERVAL=10 # Seconds between local device checks. Default is 10.
 DEV_FAIL_THRESHOLD=3 # Failed cycles before device alert. Default is 3.
 DEV_PING_COUNT=4 # Number of packets per device check. Default is 4.
+DEV_PING_TIMEOUT=1 # Seconds to wait for device ping response. Default is 1.
 
 [Remote Device Monitoring]
 REMOTE_MONITOR=YES # Enable monitoring of Remote IPs (YES/NO). Default is YES.
 REM_SCAN_INTERVAL=30 # Seconds between remote device checks. Default is 30.
 REM_FAIL_THRESHOLD=2 # Failed cycles before remote alert. Default is 2.
 REM_PING_COUNT=4 # Number of packets per remote check. Default is 4.
+REM_PING_TIMEOUT=1 # Seconds to wait for remote ping response. Default is 1.
 EOF
 
     # Generate default IP list
@@ -886,8 +887,7 @@ $SUMMARY_CONTENT" "NO"
     else
         EXT_UP_GLOBAL=1
     fi
-
-    # --- SHARED CHECK FUNCTION ---
+	# --- SHARED CHECK FUNCTION ---
     check_ip_logic() {
         local TIP=$1; local NAME=$2; local TYPE=$3; local THRESH=$4; local P_COUNT=$5
         local N_SEC=$6; local N_HUM=$7
@@ -895,6 +895,12 @@ $SUMMARY_CONTENT" "NO"
         # FIX: Ensure we didn't pick up hidden chars in args
         TIP=$(echo "$TIP" | tr -d '\r')
         NAME=$(echo "$NAME" | tr -d '\r')
+
+        # TIMEOUT LOGIC FIX:
+        # Determine strict timeout based on Type using new config variables
+        local STRICT_TIMEOUT=1
+        if [ "$TYPE" = "Device" ]; then STRICT_TIMEOUT="${DEV_PING_TIMEOUT:-1}"; fi
+        if [ "$TYPE" = "Remote" ]; then STRICT_TIMEOUT="${REM_PING_TIMEOUT:-1}"; fi
 
         local SIP=$(echo "$TIP" | tr '.' '_')
         local FC="$TMP_DIR/${TYPE}_${SIP}_c"
@@ -904,7 +910,11 @@ $SUMMARY_CONTENT" "NO"
         if [ "$TYPE" = "Device" ]; then M_FLAG="$DISCORD_MENTION_LOCAL"; fi
         if [ "$TYPE" = "Remote" ]; then M_FLAG="$DISCORD_MENTION_REMOTE"; fi
         
-        if ping -q -c "$P_COUNT" -W 1 "$TIP" > /dev/null 2>&1; then
+        # PING LOGIC FIX:
+        # 1. Use variable timeout ($STRICT_TIMEOUT)
+        # 2. Check EXIT CODE (0=Success, 1=Fail) instead of output string
+        # 3. Suppress output completely
+        if ping -q -c "$P_COUNT" -W "$STRICT_TIMEOUT" "$TIP" >/dev/null 2>&1; then
             if [ -f "$FD" ]; then
                 local DSTART; local DSSEC
                 read DSTART < "$FT"
@@ -1256,5 +1266,6 @@ echo -e "  Uninstall        : ${RED}/etc/init.d/netwatchdta purge${NC}"
 echo -e "  Manage Creds     : ${YELLOW}/etc/init.d/netwatchdta credentials${NC}"
 echo -e "  Edit Settings    : ${CYAN}$CONFIG_FILE${NC}"
 echo -e "  Edit IP List     : ${CYAN}$IP_LIST_FILE${NC}"
+echo -e "  Edit Remote List : ${CYAN}$REMOTE_LIST_FILE${NC}"
 echo -e "  Restart          : ${YELLOW}/etc/init.d/netwatchdta restart${NC}"
 echo ""
