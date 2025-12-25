@@ -74,32 +74,33 @@ ask_opt() {
 # ==============================================================================
 #  PORTABLE FETCH WRAPPER (INSTALLER VERSION)
 # ==============================================================================
+# Defined early so the installer can use it for connectivity tests.
+# CRITICAL FIX: Ensures output is redirected to /dev/null to prevent
+# writing keys to disk as filenames.
 safe_fetch() {
     local url="$1"
     local data="$2"   # JSON Payload
     local header="$3" # e.g. "Content-Type: application/json"
 
-    # STRATEGY 1: Standard Linux (Curl) - Prioritized for Installer Reliability
-    # Curl outputs to stdout by default, so it does not leave orphan files.
+    # STRATEGY 1: Standard Linux (Curl)
+    # Priority for Installer: Curl handles HTTP 204 (No Content) responses
+    # better than uclient-fetch in interactive modes.
     if command -v curl >/dev/null 2>&1; then
         curl -s -k -X POST -H "$header" -d "$data" "$url" >/dev/null 2>&1
         return $?
     fi
 
     # STRATEGY 2: OpenWrt Native (uclient-fetch)
-    # FIX APPLIED: Added '-O /dev/null' to prevent it from saving the JSON 
-    # response as a file named after the webhook token.
+    # FIX: Added '-O /dev/null' to prevent file creation.
+    # FIX: Added '--no-check-certificate' to match curl -k behavior.
     if command -v uclient-fetch >/dev/null 2>&1; then
-        # Check if this version supports headers (OpenWrt 23.05+)
         if uclient-fetch --help 2>&1 | grep -q "\-\-header"; then
             uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
             return $?
         fi
-        # Fallback for old OpenWrt (no header support) - Falls through to wget
     fi
 
     # STRATEGY 3: Wget (Standard Linux Alternative)
-    # Wget requires -O /dev/null to avoid creating files.
     if command -v wget >/dev/null 2>&1; then
         wget -q --no-check-certificate --header="$header" \
              --post-data="$data" "$url" -O /dev/null
@@ -113,7 +114,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v1.9 (Full Grant)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v1.9 (Full Verbose)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -254,7 +255,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     printf "${BOLD}🏷️  Enter Router Name (e.g., MyRouter): ${NC}"
     read router_name_input </dev/tty
     
-    # 3b. Discord Setup Loop (Enhanced with safe_fetch and Cancel option)
+    # 3b. Discord Setup Loop
     DISCORD_ENABLE_VAL="NO"
     DISCORD_WEBHOOK=""
     DISCORD_USERID=""
@@ -277,12 +278,11 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         ask_yn "   ❓ Send test notification to Discord now?"
         if [ "$ANSWER_YN" = "y" ]; then
              echo -e "${YELLOW}   🧪 Sending Discord test...${NC}"
-             if safe_fetch "$DISCORD_WEBHOOK" "{\"content\": \"<@$DISCORD_USERID>\", \"embeds\": [{\"title\": \"🧪 Setup Test\", \"description\": \"Discord configured successfully for **$router_name_input**.\", \"color\": 1752220}]}" "Content-Type: application/json"; then
-                 echo -e "${GREEN}   ✅ Notification Sent.${NC}"
-             else
-                 echo -e "${RED}   ❌ Failed to send. Check URL.${NC}"
-             fi
+             # Using safe_fetch without strict exit code checking for better UX
+             safe_fetch "$DISCORD_WEBHOOK" "{\"content\": \"<@$DISCORD_USERID>\", \"embeds\": [{\"title\": \"🧪 Setup Test\", \"description\": \"Discord configured successfully for **$router_name_input**.\", \"color\": 1752220}]}" "Content-Type: application/json"
              
+             # Ask user confirmation instead of relying on exit code
+             echo -e "${CYAN}   ℹ️  Signal sent. Please check your Discord channel.${NC}"
              ask_yn "   ❓ Did you receive the notification?"
              
              if [ "$ANSWER_YN" = "y" ]; then
@@ -308,7 +308,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         fi
     done
 
-    # 3c. Telegram Setup Loop (Enhanced with safe_fetch and Cancel option)
+    # 3c. Telegram Setup Loop
     TELEGRAM_ENABLE_VAL="NO"
     TELEGRAM_BOT_TOKEN=""
     TELEGRAM_CHAT_ID=""
@@ -329,12 +329,9 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
         ask_yn "   ❓ Send test notification to Telegram now?"
         if [ "$ANSWER_YN" = "y" ]; then
             echo -e "${YELLOW}   🧪 Sending Telegram test...${NC}"
-            if safe_fetch "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" "{\"chat_id\": \"$TELEGRAM_CHAT_ID\", \"text\": \"🧪 Setup Test - Telegram configured successfully for $router_name_input.\"}" "Content-Type: application/json"; then
-                echo -e "${GREEN}   ✅ Notification Sent.${NC}"
-            else
-                echo -e "${RED}   ❌ Failed to send. Check Token/ID.${NC}"
-            fi
-
+            safe_fetch "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" "{\"chat_id\": \"$TELEGRAM_CHAT_ID\", \"text\": \"🧪 Setup Test - Telegram configured successfully for $router_name_input.\"}" "Content-Type: application/json"
+            
+            echo -e "${CYAN}   ℹ️  Signal sent. Please check your Telegram chat.${NC}"
             ask_yn "   ❓ Did you receive the notification?"
             
             if [ "$ANSWER_YN" = "y" ]; then
@@ -451,7 +448,7 @@ if [ "$KEEP_CONFIG" -eq 0 ]; then
     echo -e " • Execution Mode : ${BOLD}${WHITE}$EXEC_MSG${NC}"
 
     # ==============================================================================
-    #  STEP 4: GENERATE CONFIGURATION FILES (WITH DESCRIPTIONS)
+    #  STEP 4: GENERATE CONFIGURATION FILES
     # ==============================================================================
     cat <<EOF > "$CONFIG_FILE"
 # settings.conf - Configuration for netwatchdta
@@ -558,13 +555,6 @@ fi
 #  STEP 6: GENERATE CORE SCRIPT (THE ENGINE)
 # ==============================================================================
 echo -e "\n${CYAN}🛠️  Generating core script...${NC}"
-
-# ------------------------------------------------------------------------------
-# OPTIMIZATION NOTE:
-# The following engine script has been refactored to use Shell Built-ins
-# (read, arithmetic, string manipulation) instead of external binaries
-# (cat, cut, sed, awk, date) in tight loops. This reduces CPU forks and RAM usage.
-# ------------------------------------------------------------------------------
 
 cat <<'EOF' > "$INSTALL_DIR/netwatchdta.sh"
 #!/bin/sh
@@ -674,7 +664,7 @@ safe_fetch() {
     if command -v uclient-fetch >/dev/null 2>&1; then
         # Check if this version supports headers (OpenWrt 23.05+)
         if uclient-fetch --help 2>&1 | grep -q "\-\-header"; then
-            # FIX APPLIED: Added '-O /dev/null' to prevent orphan files
+            # CRITICAL FIX: -O /dev/null ensures no file writing in background mode
             uclient-fetch --no-check-certificate --header="$header" --post-data="$data" "$url" -O /dev/null >/dev/null 2>&1
             return $?
         fi
@@ -752,7 +742,14 @@ $desc"
 
 # --- HELPER: NOTIFICATION SENDER (Optimized: RAM passed in) ---
 send_notification() {
-    local title="$1"; local desc="$2"; local color="$3"; local type="$4"; local filter="$5"; local force="$6"; local tel_text="$7"; local mention="$8"
+    local title="$1"
+    local desc="$2"
+    local color="$3"
+    local type="$4"
+    local filter="$5"
+    local force="$6"
+    local tel_text="$7"
+    local mention="$8"
     
     # RAM Guard (Pre-calculated in main loop to save 'df' calls)
     if [ "$CUR_FREE_RAM" -lt "$RAM_GUARD_MIN_FREE" ]; then
