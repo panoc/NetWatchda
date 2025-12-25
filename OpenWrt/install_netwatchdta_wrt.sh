@@ -108,7 +108,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.5 (Stable)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v2.7 (Full/Fix)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -793,7 +793,8 @@ while true; do
     CUR_HOUR=$(date +%H)
     CUR_FREE_RAM=$(df /tmp | awk 'NR==2 {print $4}')
     CPU_LOAD=$(cat /proc/loadavg | awk '{print $1}')
-    # FIX: Safety default for CPU_LOAD
+    
+    # SAFETY: Ensure CPU_LOAD is not empty
     CPU_LOAD=${CPU_LOAD:-0.00}
     
     if awk "BEGIN {exit !($CPU_LOAD > $CPU_GUARD_THRESHOLD)}"; then
@@ -848,14 +849,16 @@ $SUMMARY_CONTENT" "NO"
             LAST_EXT_CHECK=$NOW_SEC
             FD="$TMP_DIR/nwdta_ext_d"; FT="$TMP_DIR/nwdta_ext_t"; FC="$TMP_DIR/nwdta_ext_c"
             EXT_UP=0
-            # FIX: Use -w (Deadline) and ensure variable safety
-            local EXT_TO="${EXT_PING_TIMEOUT:-1}"
+            # FIX: No 'local' here. Use -w (deadline) logic.
+            EXT_TO="${EXT_PING_TIMEOUT:-1}"
+            
             if [ -n "$EXT_IP" ] && ping -q -c "$EXT_PING_COUNT" -w "$EXT_TO" "$EXT_IP" > /dev/null 2>&1; then EXT_UP=1;
             elif [ -n "$EXT_IP2" ] && ping -q -c "$EXT_PING_COUNT" -w "$EXT_TO" "$EXT_IP2" > /dev/null 2>&1; then EXT_UP=1; fi
             EXT_UP_GLOBAL=$EXT_UP
 
             if [ "$EXT_UP" -eq 0 ]; then
-                local C=0
+                # FIX: No 'local' here.
+                C=0
                 [ -f "$FC" ] && read C < "$FC"
                 C=$((C+1))
                 echo "$C" > "$FC"
@@ -869,7 +872,9 @@ $SUMMARY_CONTENT" "NO"
             else
                 if [ -f "$FD" ]; then
                     echo "UP" > "$NET_STATUS_FILE"
-                    local START_TIME; local START_SEC
+                    # FIX: No 'local' here.
+                    START_TIME=""
+                    START_SEC=""
                     [ -f "$FT" ] && read START_TIME < "$FT"
                     [ -f "$FD" ] && read START_SEC < "$FD"
                     DURATION_SEC=$((NOW_SEC - START_SEC))
@@ -893,13 +898,12 @@ $SUMMARY_CONTENT" "NO"
     else
         EXT_UP_GLOBAL=1
     fi
-
-    # --- SHARED CHECK FUNCTION ---
+# --- SHARED CHECK FUNCTION ---
     check_ip_logic() {
+        # FIX: Added defaults prevents crash if config is missing
         local TIP="$1"
         local NAME="$2"
         local TYPE="$3"
-        # FIX: Added defaults prevents crash if config is missing (e.g. Upgrade)
         local THRESH="${4:-3}"
         local P_COUNT="${5:-1}"
         local N_SEC="$6"
@@ -925,6 +929,7 @@ $SUMMARY_CONTENT" "NO"
         # PING FIX:
         # 1. Use -w (Deadline) for BusyBox compatibility
         # 2. Variable safety applied above prevents "ping: invalid argument" crash
+        # 3. Check exit code 0 (success) vs 1 (failure)
         if ping -q -c "$P_COUNT" -w "$STRICT_TIMEOUT" "$TIP" >/dev/null 2>&1; then
             if [ -f "$FD" ]; then
                 local DSTART; local DSSEC
@@ -1025,6 +1030,7 @@ $SUMMARY_CONTENT" "NO"
 done
 EOF
 chmod +x "$INSTALL_DIR/netwatchdta.sh"
+
 # ==============================================================================
 #  STEP 7: SERVICE CONFIGURATION (INIT.D)
 # ==============================================================================
