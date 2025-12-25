@@ -107,7 +107,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v3.5 (Discord 204 Fix)"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Automated Setup${NC} v3.51 (Discord 204 Fix)"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo ""
@@ -962,8 +962,8 @@ $SUMMARY_CONTENT" "NO"
                 local DUR=$(( N_SEC - DSSEC ))
                 local DR_STR="$((DUR/60))m $((DUR%60))s"
                 local D_MSG="**Router:** $ROUTER_NAME\n**${TYPE}:** $NAME ($TIP)\n**Down at:** $DSTART\n**Up at:** $N_HUM\n**Outage:** $DR_STR"
-                local T_MSG="🟢 ${TYPE} UP* $ROUTER_NAME - $NAME - $TIP - $N_HUM - $DR_STR"
-                log_msg "[SUCCESS] ${TYPE}: $NAME Online ($DR_STR)" "UPTIME" "$N_HUM"
+                local T_MSG="🟢 ${TYPE} UP* $ROUTER_NAME - $NAME - $TIP is Online - $N_HUM - Downtime duration - $DR_STR"
+                log_msg "[SUCCESS] ${TYPE}: $NAME Online - Downtime duration $DR_STR" "UPTIME" "$N_HUM"
                 if [ "$IS_SILENT" -eq 1 ]; then
                      if [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -ge 5120 ]; then :; else echo "${TYPE} $NAME UP: $N_HUM (Down $DR_STR)" >> "$SILENT_BUFFER"; fi
                 else
