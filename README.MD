@@ -114,15 +114,15 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 | `EXEC_METHOD` | `1` = Parallel (Fast), `2` = Sequential (Low RAM). Auto-detected on install. |
 | `LOG_ENABLE` | Enables writing events to `netwatchdta.log`. |
 | `LOG_MAX_SIZE` | Max size of the log file in KB before rotation. |
-| `DISCORD_ENABLE` | Master switch for Discord alerts (`YES`/`NO`). |
-| `TELEGRAM_ENABLE` | Master switch for Telegram alerts (`YES`/`NO`). |
+| `DISCORD_ENABLE` | Master switch for Discord alerts. |
+| `TELEGRAM_ENABLE` | Master switch for Telegram alerts. |
 | `SILENT_ENABLE` | If `YES`, notifications are paused during specific hours. |
 | `SILENT_START` | Hour to **start** silence (0-23). |
 | `SILENT_END` | Hour to **end** silence (0-23). |
-| `DISCORD_MENTION_LOCAL` | Mention on Local Device events (`YES`/`NO`). |
-| `DISCORD_MENTION_REMOTE`| Mention on Remote Server events (`YES`/`NO`). |
-| `DISCORD_MENTION_NET` | Mention on Internet (WAN) events (`YES`/`NO`). |
-| `DISCORD_MENTION_HEARTBEAT`| Mention inside the daily Heartbeat report (`YES`/`NO`). |
+| `DISCORD_MENTION_LOCAL` | Mention on Local Device events. |
+| `DISCORD_MENTION_REMOTE`| Mention on Remote Server events. |
+| `DISCORD_MENTION_NET` | Mention on Internet (WAN) events. |
+| `DISCORD_MENTION_HEARTBEAT`| Mention inside the daily Heartbeat report. |
 | `CPU_GUARD_THRESHOLD` | System load value (1 min avg) to trigger pause. |
 | `RAM_GUARD_MIN_FREE` | Minimum free RAM (in KB) required to run checks. |
 | `HEARTBEAT` | Enables the periodic "I am still running" report. |
