@@ -8,7 +8,7 @@ Originally designed for OpenWrt routers, **v4.x** has been re-engineered as a **
 
 ---
 
-## ✨ Key Features (v4.3)
+## ✨ Key Features
 
 * **🦄 Universal Installer:** One script works on OpenWrt routers, Raspberry Pis, VPSs, and Desktop Linux.
 * **🧠 Smart Engine:**
