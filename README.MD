@@ -67,7 +67,7 @@ curl -sL https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/ins
 
 ### Option 2: OpenWrt (Routers)
 
-*No sudo required. Requires `wget`. Requires `curl` only if you have problem with default uclient-fetch implementation and/or you want to manually switch to curl*
+*No sudo required. Requires `wget`. Requires `curl` only if you have problem with default uclient-fetch implementation and/or you want to manually switch to `curl`.*
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh | sh
