@@ -108,7 +108,7 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 <summary><strong>📝 List of all available settings</strong></summary>
 
 | Setting | Description |
-| :--- | :--- | :--- |
+| :--- | :--- |
 | `ROUTER_NAME` | The name displayed in the title of all notifications. |
 | `FETCH_TOOL` | **AUTO**, `CURL`, `UCLIENT`, or `WGET`. Controls which tool sends alerts. |
 | `EXEC_METHOD` | `1` = Parallel (Fast), `2` = Sequential (Low RAM). Auto-detected on install. |
