@@ -30,7 +30,7 @@ Originally designed for OpenWrt routers, **v4.x** has been re-engineered as a **
 
 ---
 
-## ✅ Supported Operating Systems
+## 🖥️ Supported Operating Systems
 
 <details>
 <summary><strong>🐧NetWatchdta v4.x automatically adapts to the underlying OS.</strong></summary>
