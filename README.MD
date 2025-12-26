@@ -167,7 +167,7 @@ opkg update && opkg install luci-app-commands
 * Go to **System** ➡️ **Custom Commands**.
 * Click **Add**.
 * **Description:** `NetWatchdta Logs`
-* **Command:** `/etc/init.d/netwatchdta logs`
+* **Command:** `/etc/init.d/netwatchdta logs` or `sudo netwatchdta logs'
 * Click **Save & Apply**.
 
 Now you can view the live monitor logs directly from your browser by going to **System** ➡️ **Custom Commands**!
