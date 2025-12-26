@@ -133,7 +133,7 @@ Once installed, use the CLI commands to manage the service.
 ### 🎮 Service Commands
 
 <details>
-<summary><strong>⌨️ List of all available commands</strong></summary>
+<summary><strong>List of all available commands</strong></summary>
 
 | Action | Linux Command | OpenWrt Command | Description |
 | --- | --- | --- | --- |
@@ -224,10 +224,10 @@ Now you can view the live monitor logs directly from your browser by going to **
 </details>
 <br>
 
-### 📊 RAM & CPU Usage Scaling
+### RAM & CPU Usage Scaling
 
 <details>
-<summary><strong>📊 Click to expand: Combined Resource Scaling & Safe Limits</strong></summary>
+<summary><strong>Click to expand: Combined Resource Scaling & Safe Limits</strong></summary>
 
 ### **1. Parallel Mode (Performance Focused)**
 *Simultaneous execution. Fastest alerts. Use this ONLY if your device is within the "Safe Max" limit.*
