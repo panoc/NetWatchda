@@ -1,4 +1,4 @@
-# 🌐 NetWatchdta (Universal)
+# 🌐 NetWatchdta
 
 > **Network Monitor with Real Time Alerts for OpenWrt & Linux**
 
