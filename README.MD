@@ -9,6 +9,44 @@ Originally designed for OpenWrt routers, **v4.x** has been re-engineered as a **
 ---
 
 <details>
+<summary><strong>📊 Click to expand: Combined Resource Scaling & Safe Limits</strong></summary>
+
+### **1. Parallel Mode (Performance Focused)**
+*Simultaneous execution. Fastest alerts. Use this ONLY if your device is within the "Safe Max" limit.*
+
+| Chipset Tier | Common CPU / Architecture | Example Devices | 5 Events (CPU / RAM) | 50 Events (CPU / RAM) | **Est. Safe Max**<br>*(w/ Headroom)* | Recommended? |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| **Legacy / Low Power** | **MediaTek MT7621**<br>*(MIPS 1004Kc Dual)* | Ubiquiti ER-X, Xiaomi 4A Gig | Moderate / **~3 MB** | **💀 CRITICAL** / **~12 MB** | **~3 - 5 Events** | **❌ NO**<br>*(Use Sequential)* |
+| | **Broadcom BCM2835**<br>*(ARMv6 Single-Core)* | **Raspberry Pi Zero / Zero W** | Moderate / **~8 MB** | **💀 CRITICAL** / **~30 MB** | **~3 - 5 Events** | **❌ NO**<br>*(Use Sequential)* |
+| **Mid-Range** | **Broadcom BCM2710**<br>*(ARM Cortex-A53)* | **Raspberry Pi Zero 2 W**, Pi 3B+ | Negligible / **~8 MB** | **High Spike** / **~25 MB**<br>*(~75% CPU)* | **~30 - 40 Events** | **✅ YES**<br>*(For Home Labs)* |
+| | **MediaTek Filogic 820**<br>*(ARM Cortex-A53)* | **Flint 2 (MT6000)**, AX3000 | Negligible / **~4 MB** | **High Spike** / **~18 MB**<br>*(~80% CPU)* | **~30 - 40 Events** | **✅ YES**<br>*(Safe)* |
+| **Performance SBC** | **Rockchip RK3399**<br>*(ARMv8 Hexa-Core)* | **NanoPi R4S**, R2S, Orange Pi | Negligible / **~8 MB** | **Moderate** / **~25 MB**<br>*(~60% CPU)* | **~50 - 60 Events** | **✅ YES**<br>*(Excellent)* |
+| | **Broadcom BCM2711**<br>*(ARM Cortex-A72)* | **Raspberry Pi 4**, Pi 400 | Negligible / **~8 MB** | **Moderate** / **~25 MB**<br>*(~50% CPU)* | **~60 - 70 Events** | **✅ YES**<br>*(Excellent)* |
+| **High-End** | **Broadcom BCM2712**<br>*(ARM Cortex-A76)* | **Raspberry Pi 5** | Negligible / **~10 MB** | **Low Load** / **~40 MB**<br>*(~20% CPU)* | **150+ Events** | **✅ YES**<br>*(Best Perf)* |
+| | **Rockchip RK3588**<br>*(ARMv8 Octa-Core)* | **NanoPi R6S**, Orange Pi 5 | Negligible / **~10 MB** | **Low Load** / **~40 MB**<br>*(~20% CPU)* | **150+ Events** | **✅ YES**<br>*(Best Perf)* |
+| | **Intel N100 / x86**<br>*(x86_64)* | Mini PC Routers, PfSense | Negligible / **~20 MB** | **Low Load** / **~150 MB***<br>*(~15% CPU)* | **200+ Events** | **✅ YES**<br>*(Best Perf)* |
+
+> **⚠️ What happens if I exceed the "Safe Max"?**
+> The device will likely hit **100% CPU usage** for several seconds.
+> * **On Routers:** This may cause temporary Wi-Fi lag or packet loss.
+> * **On Raspberry Pis:** The system may become sluggish or unresponsive via SSH.
+> * **Note on x86 RAM:** Linux `bash` and `curl` use significantly more private memory per process than OpenWrt's optimized `ash` and `uclient-fetch`.
+
+### **2. Sequential Mode (Stability Focused)**
+*One-by-one execution. Zero resource spikes. Unlimited capacity.*
+
+| Chipset Tier | Common CPU / Architecture | Example Devices | Est. Safe Max Events | Recommended? |
+| :--- | :--- | :--- | :--- | :--- |
+| **Legacy / Low Power** | **MediaTek MT7621** | Ubiquiti ER-X, R6220 | **Unlimited*** | **✅ YES**<br>*(Mandatory)* |
+| | **Broadcom BCM2835** | **Raspberry Pi Zero / Zero W** | **Unlimited*** | **✅ YES**<br>*(Mandatory)* |
+| **Mid-Range** | **All ARMv8 Chips** | Pi Zero 2, Pi 3/4, Flint 2 | **Unlimited*** | **⚠️ Optional**<br>*(Max Stability)* |
+| **High-End** | **x86 / RK3588** | N100, Pi 5, NanoPi R6S | **Unlimited*** | **❌ Unnecessary** |
+
+> **\*Unlimited Note:** Sequential mode processes events one after another. You can monitor 1,000 devices safely, but the last notification will arrive several minutes after the first one.
+
+</details>
+
+<details>
 <summary><strong>📊 Click to expand: Resource Scaling & Safe Event Limits</strong></summary>
 
 ### **1. Parallel Mode (Performance Focused)**
