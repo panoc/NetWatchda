@@ -145,7 +145,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Universal Setup${NC} v1.3.2"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Universal Setup${NC} v1.3.3"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo -e "${WHITE}🖥️  System Detected : ${GREEN}$OS_TYPE${NC}"
@@ -1128,6 +1128,10 @@ clear() {
 edit() {
     echo ""
     echo -e "\033[1;36m📝 Configuration Editor\033[0m"
+    
+    local editor="vi"
+    if command -v nano >/dev/null 2>&1; then editor="nano"; fi
+    
     while true; do
         echo "1. Edit Settings (settings.conf)"
         echo "2. Edit Device IPs (device_ips.conf)"
@@ -1136,9 +1140,9 @@ edit() {
         printf "\033[1mChoice [1-4]: \033[0m"
         read choice </dev/tty
         case "\$choice" in
-            1) vi "$INSTALL_DIR/settings.conf"; break ;;
-            2) vi "$INSTALL_DIR/device_ips.conf"; break ;;
-            3) vi "$INSTALL_DIR/remote_ips.conf"; break ;;
+            1) \$editor "$INSTALL_DIR/settings.conf"; break ;;
+            2) \$editor "$INSTALL_DIR/device_ips.conf"; break ;;
+            3) \$editor "$INSTALL_DIR/remote_ips.conf"; break ;;
             4) echo "Cancelled."; exit 0 ;;
             *) echo "Invalid choice." ;;
         esac
@@ -1295,7 +1299,7 @@ EOF
     systemctl enable netwatchdta >/dev/null 2>&1
     systemctl start netwatchdta
 
-    # --- LINUX CLI WRAPPER (Updated with Edit Menu & Missing Commands) ---
+    # --- LINUX CLI WRAPPER (Updated with Functions for Local Fix) ---
     CLI_PATH="/usr/local/bin/netwatchdta"
     cat <<EOF > "$CLI_PATH"
 #!/bin/sh
@@ -1325,6 +1329,53 @@ get_decrypted_creds() {
     if [ ! -f "\$vault" ]; then return 1; fi
     local key=\$(get_hw_key)
     openssl enc -aes-256-cbc -a -d -salt -pbkdf2 -iter 10000 -k "\$key" -in "\$vault" 2>/dev/null
+}
+
+run_discord_test() {
+    load_functions
+    local decrypted=\$(get_decrypted_creds)
+    decrypted=\$(echo "\$decrypted" | tr -d '\r')
+    local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
+    if [ -n "\$webhook" ]; then
+        echo "Sending Discord test..."
+        curl -s -k -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook" >/dev/null 2>&1
+        echo "Sent."
+    else
+        echo "No Discord Webhook configured or vault locked."
+    fi
+}
+
+run_telegram_test() {
+    load_functions
+    local decrypted=\$(get_decrypted_creds)
+    decrypted=\$(echo "\$decrypted" | tr -d '\r')
+    local token=\$(echo "\$decrypted" | cut -d'|' -f3)
+    local chat=\$(echo "\$decrypted" | cut -d'|' -f4)
+    if [ -n "\$token" ]; then
+        echo "Sending Telegram test..."
+        curl -s -k -X POST "https://api.telegram.org/bot\$token/sendMessage" -d chat_id="\$chat" -d text="🛠️ Telegram Warning Test - \$ROUTER_NAME" >/dev/null 2>&1
+        echo "Sent."
+    else
+        echo "No Telegram Token configured or vault locked."
+    fi
+}
+
+run_credentials_update() {
+    echo ""
+    echo -e "\033[1;33m🔐 Credential Manager\033[0m"
+    echo "1. Change Discord Credentials"
+    echo "2. Change Telegram Credentials"
+    echo "3. Change Both"
+    printf "Choice [1-3]: "
+    read c_choice </dev/tty
+    
+    load_functions
+    local current=\$(get_decrypted_creds); current=\$(echo "\$current" | tr -d '\r')
+    local d_hook=\$(echo "\$current" | cut -d'|' -f1); local d_uid=\$(echo "\$current" | cut -d'|' -f2); local t_tok=\$(echo "\$current" | cut -d'|' -f3); local t_chat=\$(echo "\$current" | cut -d'|' -f4)
+    if [ "\$c_choice" = "1" ] || [ "\$c_choice" = "3" ]; then printf "New Discord Webhook: "; read d_hook </dev/tty; printf "New Discord User ID: "; read d_uid </dev/tty; fi
+    if [ "\$c_choice" = "2" ] || [ "\$c_choice" = "3" ]; then printf "New Telegram Token: "; read t_tok </dev/tty; printf "New Telegram Chat ID: "; read t_chat </dev/tty; fi
+    local new_data="\${d_hook}|\${d_uid}|\${t_tok}|\${t_chat}"; local vault="\$INSTALL_DIR/.vault.enc"; local key=\$(get_hw_key)
+    if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then echo -e "\033[1;32m✅ Credentials updated.\033[0m"; systemctl restart netwatchdta; else echo -e "\033[1;31m❌ Encryption failed.\033[0m"; fi
 }
 
 case "\$1" in
@@ -1365,50 +1416,9 @@ case "\$1" in
         echo ""
         echo -e "\033[1;33m⚠️  If you made changes, run: netwatchdta restart\033[0m"
         ;;
-    discord)
-        load_functions
-        local decrypted=\$(get_decrypted_creds)
-        decrypted=\$(echo "\$decrypted" | tr -d '\r')
-        local webhook=\$(echo "\$decrypted" | cut -d'|' -f1)
-        if [ -n "\$webhook" ]; then
-            echo "Sending Discord test..."
-            curl -s -k -H "Content-Type: application/json" -X POST -d "{\"embeds\": [{\"title\": \"🛠️ Discord Warning Test\", \"description\": \"**Router:** \$ROUTER_NAME\nManual warning triggered.\", \"color\": 16776960}]}" "\$webhook" >/dev/null 2>&1
-            echo "Sent."
-        else
-            echo "No Discord Webhook configured or vault locked."
-        fi
-        ;;
-    telegram)
-        load_functions
-        local decrypted=\$(get_decrypted_creds)
-        decrypted=\$(echo "\$decrypted" | tr -d '\r')
-        local token=\$(echo "\$decrypted" | cut -d'|' -f3)
-        local chat=\$(echo "\$decrypted" | cut -d'|' -f4)
-        if [ -n "\$token" ]; then
-            echo "Sending Telegram test..."
-            curl -s -k -X POST "https://api.telegram.org/bot\$token/sendMessage" -d chat_id="\$chat" -d text="🛠️ Telegram Warning Test - \$ROUTER_NAME" >/dev/null 2>&1
-            echo "Sent."
-        else
-            echo "No Telegram Token configured or vault locked."
-        fi
-        ;;
-    credentials)
-        echo ""
-        echo -e "\033[1;33m🔐 Credential Manager\033[0m"
-        echo "1. Change Discord Credentials"
-        echo "2. Change Telegram Credentials"
-        echo "3. Change Both"
-        printf "Choice [1-3]: "
-        read c_choice </dev/tty
-        
-        load_functions
-        local current=\$(get_decrypted_creds); current=\$(echo "\$current" | tr -d '\r')
-        local d_hook=\$(echo "\$current" | cut -d'|' -f1); local d_uid=\$(echo "\$current" | cut -d'|' -f2); local t_tok=\$(echo "\$current" | cut -d'|' -f3); local t_chat=\$(echo "\$current" | cut -d'|' -f4)
-        if [ "\$c_choice" = "1" ] || [ "\$c_choice" = "3" ]; then printf "New Discord Webhook: "; read d_hook </dev/tty; printf "New Discord User ID: "; read d_uid </dev/tty; fi
-        if [ "\$c_choice" = "2" ] || [ "\$c_choice" = "3" ]; then printf "New Telegram Token: "; read t_tok </dev/tty; printf "New Telegram Chat ID: "; read t_chat </dev/tty; fi
-        local new_data="\${d_hook}|\${d_uid}|\${t_tok}|\${t_chat}"; local vault="\$INSTALL_DIR/.vault.enc"; local key=\$(get_hw_key)
-        if echo -n "\$new_data" | openssl enc -aes-256-cbc -a -salt -pbkdf2 -iter 10000 -k "\$key" -out "\$vault" 2>/dev/null; then echo -e "\033[1;32m✅ Credentials updated.\033[0m"; systemctl restart netwatchdta; else echo -e "\033[1;31m❌ Encryption failed.\033[0m"; fi
-        ;;
+    discord) run_discord_test ;;
+    telegram) run_telegram_test ;;
+    credentials) run_credentials_update ;;
     purge) 
         echo ""
         echo -e "\033[1;31m=======================================================\033[0m"
