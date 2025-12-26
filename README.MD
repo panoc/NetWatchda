@@ -316,10 +316,7 @@ Now you can view the live monitor logs directly from your browser by going to **
 > **Switch to Sequential Mode.**
 >
 > It is better to receive your 50th alert **2 minutes late** than to have your monitoring device **crash** because it tried to send them all at the exact same second.
-
 </details>
-
----
 
 ---
 
