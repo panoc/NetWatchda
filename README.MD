@@ -169,16 +169,6 @@ Now you can view the live monitor logs directly from your browser by going to **
 > * **On Routers:** This may cause temporary Wi-Fi lag or packet loss.
 > * **On Raspberry Pis:** The system may become sluggish or unresponsive via SSH.
 > * **Note on x86 RAM:** Linux `bash` and `curl` use significantly more private memory per process than OpenWrt's optimized `ash` and `uclient-fetch`.
-> **ℹ️ Mode Comparison:**
-> * **Parallel Mode:** Processes all failures simultaneously. Recommended for devices with **>256MB RAM**.
->     * *Pros:* Instant notification for mass outages.
->     * *Cons:* High temporary CPU/RAM spike during mass failure events.
-> * **Sequential Mode:** Processes failures one by one. Recommended for devices with **<256MB RAM**.
->     * *Pros:* Zero resource spikes; RAM usage remains flat even if 100 devices fail.
->     * *Cons:* Alerts are sent one after another, so the 50th alert may arrive ~20-30 seconds later than the 1st.
-
-> **ℹ️ Note on OpenWrt CPU:** 
->* The **100% CPU spike** during 50 simultaneous events is due to the heavy math required for 50 concurrent TLS (HTTPS) handshakes. While RAM usage remains safe/low due to shared libraries, the processor may be momentarily saturated, potentially causing brief web interface lag.
 
 ### **2. Sequential Mode (Stability Focused)**
 *One-by-one execution. Zero resource spikes. Unlimited capacity.*
@@ -190,11 +180,18 @@ Now you can view the live monitor logs directly from your browser by going to **
 | **Mid-Range** | **All ARMv8 Chips** | Pi Zero 2, Pi 3/4, Flint 2 | **Unlimited*** | **⚠️ Optional**<br>*(Max Stability)* |
 | **High-End** | **x86 / RK3588** | N100, Pi 5, NanoPi R6S | **Unlimited*** | **❌ Unnecessary** |
 
-> **\*Unlimited Note:** Sequential mode processes events one after another. You can monitor 1,000 devices safely, but the last notification will arrive several minutes after the first one.
+> **\*ℹ️ Mode Comparison:**
+> * **Parallel Mode:** Processes all failures simultaneously. Recommended for devices with **>256MB RAM**.
+>     * *Pros:* Instant notification for mass outages.
+>     * *Cons:* High temporary CPU/RAM spike during mass failure events.
+> * **Sequential Mode:** Processes failures one by one. Recommended for devices with **<256MB RAM**.
+>     * *Pros:* Zero resource spikes; RAM usage remains flat even if 100 devices fail.
+>     * *Cons:* Alerts are sent one after another, so the 50th alert may arrive ~20-30 seconds later than the 1st.
 
+> **ℹ️ Note on OpenWrt CPU:** 
+>* The **100% CPU spike** during 50 simultaneous events is due to the heavy math required for 50 concurrent TLS (HTTPS) handshakes. While RAM usage remains safe/low due to shared libraries, the processor may be momentarily saturated, potentially causing brief web interface lag.
 </details>
 
-<details>
 <summary><strong>💡 Click to expand: Hardware Recommendations & Selection Guide</strong></summary>
 
 ### 🎯 Quick Decision Matrix
