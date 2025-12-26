@@ -168,6 +168,34 @@ Now you can view the live monitor logs directly from your browser by going to **
 
 ---
 
+### 📊 RAM & CPU Usage Scaling (Stress Test)
+*Estimates comparing Parallel (High Performance) vs. Sequential (Low RAM) modes.*
+
+| Execution Mode | Simultaneous Failures | OS | Tool | Est. CPU Usage (Peak) | Est. RAM Usage (Peak) |
+| :--- | :--- | :--- | :--- | :--- | :--- |
+| **Parallel**<br>*(Fastest Alerts)* | **5 Events** | OpenWrt | `uclient` | Low (< 5%) | **~2.5 MB** |
+| | | Linux | `curl` | Low (< 10%) | **~20 MB** |
+| | **20 Events** | OpenWrt | `uclient` | Moderate (~30%) | **~8 MB** |
+| | | Linux | `curl` | Moderate (~30%) | **~80 MB** |
+| | **50 Events** | OpenWrt | `uclient` | **High Spike (100%)*** | **~25 MB** |
+| | | Linux | `curl` | High Spike (~80%) | **~200 MB** |
+| | | | | | |
+| **Sequential**<br>*(Safe / Low RAM)* | **5 Events** | OpenWrt | `uclient` | Very Low (< 5%) | **~2 MB (Constant)** |
+| | | Linux | `curl` | Very Low (< 5%) | **~15 MB (Constant)** |
+| | **20 Events** | OpenWrt | `uclient` | Very Low (< 5%) | **~2 MB (Constant)** |
+| | | Linux | `curl` | Very Low (< 5%) | **~15 MB (Constant)** |
+| | **50 Events** | OpenWrt | `uclient` | Very Low (< 5%) | **~2 MB (Constant)** |
+| | | Linux | `curl` | Very Low (< 5%) | **~15 MB (Constant)** |
+
+> **ℹ️ Mode Comparison:**
+> * **Parallel Mode:** Processes all failures simultaneously. Recommended for devices with **>256MB RAM**.
+>     * *Pros:* Instant notification for mass outages.
+>     * *Cons:* High temporary CPU/RAM spike during mass failure events.
+> * **Sequential Mode:** Processes failures one by one. Recommended for devices with **<256MB RAM**.
+>     * *Pros:* Zero resource spikes; RAM usage remains flat even if 100 devices fail.
+>     * *Cons:* Alerts are sent one after another, so the 50th alert may arrive ~20-30 seconds later than the 1st.
+
+---
 ## 🗑️ Uninstallation
 
 You have two ways to uninstall the tool. Both launch the interactive **Smart Uninstaller** which asks if you want to remove everything or keep your settings.
