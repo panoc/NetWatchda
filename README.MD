@@ -1,6 +1,6 @@
 # 🌐 NetWatchdta (Universal)
 
-> **The Grand Unified Network Monitor for OpenWrt & Linux**
+> **Network Monitor for OpenWrt & Linux**
 
 **NetWatchdta** is a lightweight, robust, and highly configurable network monitoring script. It continuously monitors your Internet connection (WAN), Local Devices (LAN), and Remote Servers, sending real-time alerts via **Discord** and **Telegram**.
 
