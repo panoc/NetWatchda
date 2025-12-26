@@ -82,9 +82,6 @@ wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubu
 4. Select some basic settings.
 5. Set up the system service (autostart).
 
-Here is the file list formatted for your GitHub `README.md`. You can copy the code block below directly.
-
-
 ### 📂 File Structure & Locations
 
 <details>
@@ -121,7 +118,7 @@ These files integrate the script with your operating system.
 | :--- | :--- | :--- |
 | **OpenWrt** | `/etc/init.d/netwatchdta` | Procd init script to manage the service. |
 | **Linux** | `/etc/systemd/system/netwatchdta.service` | Systemd unit file to manage the service. |
-| **Linux** | `/usr/local/bin/netwatchdta` | CLI wrapper command (allows typing `netwatchdta` directly). |
+| **Linux** | `/usr/local/bin/netwatchdta` | CLI wrapper command (allows typing `netwatchdta` directly). |  
 </details>
 
 ---
