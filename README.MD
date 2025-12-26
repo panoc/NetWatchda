@@ -122,6 +122,10 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 
 Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/settings.conf` (OpenWrt).
 
+<details>
+<details>
+<summary><strong>📝 List of all available settings</strong></summary>
+
 | Setting | Default | Description |
 | :--- | :--- | :--- |
 | `ROUTER_NAME` | `Router` | The name displayed in the title of all notifications. |
@@ -162,7 +166,7 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 | `LOG_ENABLE` | `YES` | Enables writing events to `netwatchdta.log`. |
 | `LOG_MAX_SIZE` | `512` | Max size of the log file in KB before rotation. |
 | `DEBUG_MODE` | `NO` | Enables verbose output to the console. |
-
+</details>
 
 ---
 
