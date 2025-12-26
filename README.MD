@@ -197,7 +197,7 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 | `REM_PING_COUNT | Number of packets per remote check. |
 | `REM_PING_TIMEOUT | Seconds to wait for remote ping response. |
 </details>
-
+<br>
 
 ### 🖥️ LuCI Web Interface Integration
 <details>
@@ -222,6 +222,7 @@ opkg update && opkg install luci-app-commands
 
 Now you can view the live monitor logs directly from your browser by going to **System** ➡️ **Custom Commands**!
 </details>
+<br>
 
 ### 📊 RAM & CPU Usage Scaling
 
@@ -270,6 +271,7 @@ Now you can view the live monitor logs directly from your browser by going to **
 > **ℹ️ Note on OpenWrt CPU:** 
 >* The **100% CPU spike** during 50 simultaneous events is due to the heavy math required for 50 concurrent TLS (HTTPS) handshakes. While RAM usage remains safe/low due to shared libraries, the processor may be momentarily saturated, potentially causing brief web interface lag.
 </details>
+<br>
 
 <details>
 <summary><strong>💡 Click to expand: Hardware Recommendations & Selection Guide</strong></summary>
