@@ -46,9 +46,17 @@ NetWatchdta v4.x automatically adapts to the underlying OS.
 | **Arch** | ✅ **Perfect** | **Arch Linux**, **Manjaro**, **EndeavourOS**, **Garuda** | Uses `systemd` & `pacman`. |
 | **SUSE** | ✅ **Perfect** | **OpenSUSE** (Leap/Tumbleweed) | Uses `systemd` & `zypper`. |
 
+### ❌ Incompatible / Untested
+
+* **Alpine Linux** (Uses OpenRC, not supported yet).
+* **Slackware / Void / Gentoo** (Non-Systemd inits).
+* **BSD / macOS** (Different userland tools).
+
 ---
 
 ## 🚀 Installation
+
+The installer will automatically detect your OS, install necessary dependencies (`curl`, `openssl`, etc.), and set up the service.
 
 ### Option 1: Linux (Desktop/Server)
 
