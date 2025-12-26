@@ -130,7 +130,7 @@ These files integrate the script with your operating system.
 
 Once installed, use the CLI commands to manage the service.
 
-### 🎮 Service Commands
+### Service Commands
 
 <details>
 <summary><strong>List of all available commands</strong></summary>
@@ -199,7 +199,7 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 </details>
 <br>
 
-### 🖥️ LuCI Web Interface Integration
+### LuCI Web Interface Integration
 <details>
 <summary><strong>Installation guide</strong></summary>
 
