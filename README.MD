@@ -107,7 +107,7 @@ Location: `/opt/netwatchdta/settings.conf` (Linux) or `/root/netwatchdta/setting
 <details>
 <summary><strong>📝 List of all available settings</strong></summary>
 
-| Setting | Default | Description |
+| Setting | Description |
 | :--- | :--- | :--- |
 | `ROUTER_NAME` | The name displayed in the title of all notifications. |
 | `FETCH_TOOL` | **AUTO**, `CURL`, `UCLIENT`, or `WGET`. Controls which tool sends alerts. |
