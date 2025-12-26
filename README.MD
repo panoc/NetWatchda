@@ -78,7 +78,7 @@ wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubu
 
 ### The interactive installer will:
 
-1. Check system requirements (Storage/RAM).
+1. Check system requirements (Storage/RAM) and will automatically set the appropriate settings.
 2. Ask for your **Notification Credentials** (Discord/Telegram).
 3. Perform a live connectivity test.
 4. Select some basic settings.
