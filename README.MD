@@ -33,8 +33,7 @@ Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **
 
 ## 🖥️ Supported Operating Systems
 
-<details>
-<summary><strong>NetWatchdta v1.x automatically adapts to the underlying OS.</strong></summary>
+## NetWatchdta v1.x automatically adapts to the underlying OS
 
 | Category | Status | Supported Distributions | Notes |
 | --- | --- | --- | --- |
@@ -49,7 +48,6 @@ Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **
 * **Alpine Linux** (Uses OpenRC, not supported yet).
 * **Slackware / Void / Gentoo** (Non-Systemd inits).
 * **BSD / macOS** (Different userland tools).
-</details>
 <br>
 
 ---
