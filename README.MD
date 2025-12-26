@@ -30,6 +30,7 @@ Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **
 ---
 <br>
 <br>
+
 ## 🖥️ Supported Operating Systems
 
 <details>
