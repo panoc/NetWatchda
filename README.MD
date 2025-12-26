@@ -6,8 +6,7 @@
 
 Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **Universal Application**. It automatically detects your operating system, adjusts its dependencies, adjusts default settings based on your hardware and installs as a native system service (`procd` for OpenWrt, `systemd` for Linux).
 <p align="left">
-  <img src="https://img.shields.io/badge/OS-Linux%20%7C%20OpenWrt-1272ba?style=flat-squarelogo=openwrt&logoColor=white">
-  <img src="https://img.shields.io/badge/OpenWrt-1272ba?style=flat-squarelogo=openwrt&logoColor=white">
+  <img src="https://img.shields.io/badge/OS-OpenWrt%20%7C%20Linux-1272ba?style=flat-squarelogo=openwrt&logoColor=white">
   <img src="https://img.shields.io/badge/Alerts-Discord%20%26%20Telegram-7289da?style=flat-square&logo=discord&logoColor=white">
   <img src="https://img.shields.io/badge/Vault-AES--256-red?style=flat-square&logo=keepassxc&logoColor=white">
   <img src="https://img.shields.io/badge/License-GPLv3-blue?style=flat-square">
