@@ -84,6 +84,48 @@ wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubu
 4. Select some basic settings.
 5. Set up the system service (autostart).
 
+Here is the file list formatted for your GitHub `README.md`. You can copy the code block below directly.
+
+```markdown
+### 📂 File Structure & Locations
+
+**netwatchdta** creates the following files during installation and operation.
+
+#### 1. Installation Directory
+**Location:** `/opt/netwatchdta/` (Linux) or `/root/netwatchdta/` (OpenWrt).
+
+| File Name | Description |
+| :--- | :--- |
+| `netwatchdta.sh` | The core logic script (the engine). |
+| `settings.conf` | Main configuration file for user settings. |
+| `device_ips.conf` | List of local IPs to monitor. |
+| `remote_ips.conf` | List of remote IPs to monitor. |
+| `.vault.enc` | Encrypted credential store (Discord/Telegram tokens). |
+| `nwdta_silent_buffer` | Temporary buffer for alerts held during silent hours. |
+| `nwdta_offline_buffer` | Temporary buffer for alerts held during Internet outages. |
+
+#### 2. Temporary & Log Files
+**Location:** `/tmp/netwatchdta/`
+*(Note: These are created in RAM to prevent flash storage wear on routers)*
+
+| File Name | Description |
+| :--- | :--- |
+| `nwdta_uptime.log` | The main event log (Service started, alerts sent, etc). |
+| `nwdta_ping.log` | Detailed ping log (Only if `PING_LOG_ENABLE=YES`). |
+| `nwdta_net_status` | Stores current internet status (`UP` or `DOWN`). |
+| `*_d`, `*_c`, `*_t` | Various tracking files for timeout/failure counts. |
+
+#### 3. System Service Files
+These files integrate the script with your operating system.
+
+| OS | File Path | Description |
+| :--- | :--- | :--- |
+| **OpenWrt** | `/etc/init.d/netwatchdta` | Procd init script to manage the service. |
+| **Linux** | `/etc/systemd/system/netwatchdta.service` | Systemd unit file to manage the service. |
+| **Linux** | `/usr/local/bin/netwatchdta` | CLI wrapper command (allows typing `netwatchdta` directly). |
+
+```
+
 ---
 
 ## 🛠️ Management & Commands
