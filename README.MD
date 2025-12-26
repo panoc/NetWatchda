@@ -47,71 +47,51 @@ Originally designed for OpenWrt routers, **v4.x** has been re-engineered as a **
 </details>
 
 <details>
-<summary><strong>📊 Click to expand: Resource Scaling & Safe Event Limits</strong></summary>
+<summary><strong>💡 Click to expand: Hardware Recommendations & Selection Guide</strong></summary>
 
-### **1. Parallel Mode (Performance Focused)**
-*Simultaneous execution. Fastest alerts. Use this ONLY if your device is within the "Safe Max" limit.*
+### 🎯 Quick Decision Matrix
+*Choose the right hardware based on your intended usage.*
 
-| Chipset Tier | Common CPU / Architecture | Example Devices | 5 Events (CPU) | 50 Events (CPU) | **Est. Safe Max**<br>*(w/ Headroom)* | Recommended? |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Legacy / Low Power** | **MediaTek MT7621**<br>*(MIPS 1004Kc Dual)* | Ubiquiti ER-X, Xiaomi 4A Gig | Moderate | **💀 CRITICAL** | **~3 - 5 Events** | **❌ NO**<br>*(Use Sequential)* |
-| | **Broadcom BCM2835**<br>*(ARMv6 Single-Core)* | **Raspberry Pi Zero / Zero W** | Moderate | **💀 CRITICAL** | **~3 - 5 Events** | **❌ NO**<br>*(Use Sequential)* |
-| **Mid-Range** | **Broadcom BCM2710**<br>*(ARM Cortex-A53)* | **Raspberry Pi Zero 2 W**, Pi 3B+ | Negligible | **High Spike**<br>*(~75% CPU)* | **~30 - 40 Events** | **✅ YES**<br>*(For Home Labs)* |
-| | **MediaTek Filogic 820**<br>*(ARM Cortex-A53)* | **Flint 2 (MT6000)**, AX3000 | Negligible | **High Spike**<br>*(~80% CPU)* | **~30 - 40 Events** | **✅ YES**<br>*(Safe)* |
-| **Performance SBC** | **Rockchip RK3399**<br>*(ARMv8 Hexa-Core)* | **NanoPi R4S**, R2S, Orange Pi | Negligible | **Moderate**<br>*(~60% CPU)* | **~50 - 60 Events** | **✅ YES**<br>*(Excellent)* |
-| | **Broadcom BCM2711**<br>*(ARM Cortex-A72)* | **Raspberry Pi 4**, Pi 400 | Negligible | **Moderate**<br>*(~50% CPU)* | **~60 - 70 Events** | **✅ YES**<br>*(Excellent)* |
-| **High-End** | **Broadcom BCM2712**<br>*(ARM Cortex-A76)* | **Raspberry Pi 5** | Negligible | **Low Load**<br>*(~20% CPU)* | **150+ Events** | **✅ YES**<br>*(Best Perf)* |
-| | **Rockchip RK3588**<br>*(ARMv8 Octa-Core)* | **NanoPi R6S**, Orange Pi 5 | Negligible | **Low Load**<br>*(~20% CPU)* | **150+ Events** | **✅ YES**<br>*(Best Perf)* |
-| | **Intel N100 / x86**<br>*(x86_64)* | Mini PC Routers, PfSense | Negligible | **Low Load**<br>*(~15% CPU)* | **200+ Events** | **✅ YES**<br>*(Best Perf)* |
-
-> **⚠️ What happens if I exceed the "Safe Max"?**
-> The device will likely hit **100% CPU usage** for several seconds.
-> * **On Routers:** This may cause temporary Wi-Fi lag or packet loss.
-> * **On Raspberry Pis:** The system may become sluggish or unresponsive via SSH.
-> * **Note on x86 RAM:** Linux `bash` and `curl` use significantly more private memory per process than OpenWrt's optimized `ash` and `uclient-fetch`.*
-
-### **2. Sequential Mode (Stability Focused)**
-*One-by-one execution. Zero resource spikes. Unlimited capacity.*
-
-| Chipset Tier | Common CPU / Architecture | Example Devices | Est. Safe Max Events | Recommended? |
-| :--- | :--- | :--- | :--- | :--- |
-| **Legacy / Low Power** | **MediaTek MT7621** | Ubiquiti ER-X, R6220 | **Unlimited*** | **✅ YES**<br>*(Mandatory)* |
-| | **Broadcom BCM2835** | **Raspberry Pi Zero / Zero W** | **Unlimited*** | **✅ YES**<br>*(Mandatory)* |
-| **Mid-Range** | **All ARMv8 Chips** | Pi Zero 2, Pi 3/4, Flint 2 | **Unlimited*** | **⚠️ Optional**<br>*(Max Stability)* |
-| **High-End** | **x86 / RK3588** | N100, Pi 5, NanoPi R6S | **Unlimited*** | **❌ Unnecessary** |
-
-> **\*Unlimited Note:** Sequential mode processes events one after another. You can monitor 1,000 devices safely, but the last notification will arrive several minutes after the first one.
-
-</details>
+| If your goal is... | Recommended Hardware Tier | Execution Mode | Best Device Options |
+| :--- | :--- | :--- | :--- |
+| **Just Monitoring**<br>*(Dedicated "Watchdog")* | **Low-End / Legacy**<br>*(Zero Cost)* | **Sequential**<br>*(Mandatory)* | Raspberry Pi Zero W, Old Router (Archer C7), Travel Router |
+| **Monitoring + Network Services**<br>*(AdGuard, VPN Client, DNS)* | **Mid-Range SBC**<br>*(Balanced)* | **Parallel**<br>*(Safe up to ~50 devs)* | Raspberry Pi 3/4, NanoPi R4S, Flint 2 |
+| **Heavy Multitasking**<br>*(Gigabit Routing, NAS, Docker)* | **High-End x86 / ARM**<br>*(Performance)* | **Parallel**<br>*(Unrestricted)* | NanoPi R6S, Intel N100, Raspberry Pi 5 |
 
 ---
-<details>
-<summary><strong>📊 Click to expand: Resource Scaling by Chipset & Architecture</strong></summary>
 
-### **1. Parallel Mode (Performance Focused)**
-*Simultaneous execution. Fastest alerts, but creates a CPU spike due to concurrent TLS handshakes.*
+### 👤 **Profile 1: The "Pure Watchdog"**
+* **Goal:** You want a cheap, dedicated device just to monitor your other servers/internet. You don't want to spend money on new hardware.
+* **The Problem:** Low-end devices (like the **Pi Zero 1** or **MIPS routers**) lack hardware encryption.
+* **The Fix:** You **must** use **Sequential Mode**.
+* **Why:** Sequential mode creates ZERO resource spikes. Even a device from 2013 can monitor 1,000 IPs safely if it checks them one by one.
+* **Recommended Devices:**
+    * **Raspberry Pi Zero W:** Tiny, wireless, runs off a phone charger.
+    * **Old Router (e.g., Archer C7, Xiaomi 4A):** Flash OpenWrt on it and give it a second life as a dedicated monitor.
 
-| Chipset Tier | Common CPU / Architecture | Example Devices | 5 Events (CPU) | **5 Events (RAM)** | 50 Events (CPU) | **50 Events (RAM)** | Recommended? |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Legacy MIPS** | **MediaTek MT7621**<br>*(MIPS 1004Kc Dual)* | Ubiquiti ER-X, Xiaomi 4A Gig | Moderate | **~3 MB** | **💀 CRITICAL**<br>*(100% CPU Lag)* | **~12 MB** | **❌ NO**<br>*(Use Sequential)* |
-| | **Qualcomm QCA95xx**<br>*(MIPS 74Kc Single)* | Archer C7, TP-Link WDR4300 | Moderate | **~3 MB** | **💀 CRITICAL**<br>*(100% CPU Freeze)* | **~12 MB** | **❌ NO**<br>*(Use Sequential)* |
-| **Mid-Range** | **Rockchip RK3399**<br>*(ARMv8 Hexa-Core)* | **NanoPi R4S**, R2S, Orange Pi | Negligible | **~8 MB** | **Moderate**<br>*(~60% CPU)* | **~25 MB** | **✅ YES**<br>*(Excellent)* |
-| | **Broadcom BCM2711**<br>*(ARMv8 Quad-Core)* | **Raspberry Pi 4**, Pi 5 | Negligible | **~8 MB** | **Moderate**<br>*(~60% CPU)* | **~25 MB** | **✅ YES**<br>*(Excellent)* |
-| | **MediaTek Filogic 820**<br>*(ARMv8 Cortex-A53)* | **Flint 2 (MT6000)**, AX3000 | Negligible | **~4 MB** | **High Spike**<br>*(~80% CPU)* | **~18 MB** | **✅ YES**<br>*(Safe)* |
-| **High-End** | **Rockchip RK3588**<br>*(ARMv8 Octa-Core)* | **NanoPi R6S**, Orange Pi 5 | Negligible | **~10 MB** | **Low Load**<br>*(~20% CPU)* | **~40 MB** | **✅ YES**<br>*(Best Perf)* |
-| | **Intel N100 / x86**<br>*(x86_64)* | Mini PC Routers, PfSense | Negligible | **~20 MB** | **Low Load**<br>*(~15% CPU)* | **~150 MB*** | **✅ YES**<br>*(Best Perf)* |
+### 👤 **Profile 2: The "Network Enhancer"**
+* **Goal:** You want to run the monitoring script *alongside* moderate network tasks like **AdGuard Home** (ad blocking), **Tailscale** (VPN), or a **Unifi Controller**.
+* **The Constraint:** You need a device with **ARMv8** architecture (modern 64-bit CPU). This gives you the "Crypto Extensions" needed to handle the script's SSL alerts without slowing down your DNS or VPN.
+* **Mode:** **Parallel Mode** is safe here, but keep the "Concurrent Failures" setting reasonable (don't expect it to handle 100 simultaneous failures without a hiccup).
+* **Recommended Devices:**
+    * **Raspberry Pi 3B+ / 4:** The standard choice.
+    * **NanoPi R4S:** Excellent networking performance for the price.
+    * **GL.iNet Flint 2:** A powerful router that can run this script natively without affecting Wi-Fi speeds.
 
-> ***Note on x86 RAM:** Linux `bash` and `curl` use significantly more private memory per process than OpenWrt's optimized `ash` and `uclient-fetch`.*
+### 👤 **Profile 3: The "Power User / Lab"**
+* **Goal:** This device is your **Main Router** (handling Gigabit fiber) OR a **Home Server** (running Docker, Home Assistant, Plex/Jellyfin).
+* **The Reality:** The monitoring script is negligible for these devices. You can run **Parallel Mode** with 200+ devices and the CPU won't even blink.
+* **Why:** These CPUs (Intel N100, RK3588) have massive power reserves. The script's 100-200MB RAM usage is a "drop in the bucket" for systems with 4GB+ RAM.
+* **Recommended Devices:**
+    * **NanoPi R6S:** The king of ARM routers (dual 2.5Gbps ports).
+    * **Intel N100 Mini PC:** The ultimate low-power x86 server.
+    * **Raspberry Pi 5:** Overkill for just monitoring, but perfect if running a full homelab.
 
-### **2. Sequential Mode (Stability Focused)**
-*One-by-one execution. Zero spikes. **Mandatory for MIPS**.*
-
-| Chipset Tier | Common CPU / Architecture | Example Devices | 5 Events (CPU) | **5 Events (RAM)** | 50 Events (CPU) | **50 Events (RAM)** | Recommended? |
-| :--- | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Legacy MIPS** | **MediaTek MT7621** | Ubiquiti ER-X, R6220 | Low (<10%) | **~2 MB** | **Safe (<25%)** | **~2 MB** | **✅ YES**<br>*(Mandatory)* |
-| | **Qualcomm QCA95xx** | Archer C7, WDR4300 | Low (<10%) | **~2 MB** | **Safe (<25%)** | **~2 MB** | **✅ YES**<br>*(Mandatory)* |
-| **Mid-Range** | **All ARMv8 Chips** | NanoPi R4S, RPi 4, Flint 2 | Negligible | **~4 MB** | **Negligible** | **~4 MB** | **⚠️ Optional**<br>*(Max Stability)* |
-| **High-End** | **x86 / RK3588** | N100, NanoPi R6S | Negligible | **~15 MB** | **Negligible** | **~15 MB** | **❌ Unnecessary** |
+> **⚠️ The "Golden Rule" of Stability**
+> If you are ever in doubt, or if your device feels sluggish:
+> **Switch to Sequential Mode.**
+>
+> It is better to receive your 50th alert **2 minutes late** than to have your monitoring device **crash** because it tried to send them all at the exact same second.
 
 </details>
 
