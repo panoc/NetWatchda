@@ -149,6 +149,7 @@ Once installed, use the CLI commands to manage the service.
 | **Edit settings** | `netwatchdta edit` | `/etc/init.d/netwatchdta edit` | Edit settings menu. |
 | **Uninstall** | `netwatchdta purge` | `/etc/init.d/netwatchdta purge` | Launch the interactive uninstaller. |
 </details>
+<br>
 
 ### ⚙️ Configuration Settings (`settings.conf`)
 
