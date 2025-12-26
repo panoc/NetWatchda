@@ -61,7 +61,7 @@ The installer will automatically detect your OS, install necessary dependencies 
 *Requires `curl` and `sudo`.*
 
 ```bash
-curl -sL https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh | sudo bash
+sudo wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta_linux.sh" && sudo bash /tmp/install_netwatchdta.sh
 
 ```
 
@@ -69,7 +69,7 @@ curl -sL https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/ins
 
 *No sudo required.*
 
-*Requires `curl` only if you have problem with default uclient-fetch implementation and/or you want to manually switch to `curl`.*
+*Requires `wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta_wrt.sh" && sh /tmp/install_netwatchdta.sh`.
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh | sh
@@ -298,12 +298,12 @@ If the installation is broken, use the remote uninstaller:
 
 * **Linux:** 
 ```bash 
-`curl -sL https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh | sudo bash`
+`wget --no-check-certificate -qO /tmp/uninstall_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta_linux.sh" && sudo bash /tmp/uninstall_netwatchdta.sh`
 ```
 
 * **OpenWrt:** 
 ```bash 
-`wget -qO- https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh | sh`
+`wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta_wrt.sh" && sh /tmp/uninstall_netwatchdta_wrt.sh`
 ```
 ---
 
