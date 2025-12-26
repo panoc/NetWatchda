@@ -1,6 +1,7 @@
 # 🌐 NetWatchdta
 
 > **Network Monitor with Real Time Alerts for OpenWrt & Linux**
+
 <p align="left">
   <img src="https://img.shields.io/badge/OS-OpenWrt%20%7C%20Linux-1272ba?style=flat-squarelogo=openwrt&logoColor=white">
   <img src="https://img.shields.io/badge/Network-Monitoring%20and%20Logs-006400?style=flat-square&logo=activity&logoColor=white">  
