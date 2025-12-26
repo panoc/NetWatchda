@@ -286,6 +286,7 @@ You have two ways to uninstall the tool. Both launch the interactive **Smart Uni
 ```bash 
 sudo netwatchdta purge
 ```
+
 ```bash 
 * **OpenWrt:** 
 /etc/init.d/netwatchdta purge
@@ -295,9 +296,15 @@ sudo netwatchdta purge
 
 If the installation is broken, use the remote uninstaller:
 
-* **Linux:** `curl -sL https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh | sudo bash`
-* **OpenWrt:** `wget -qO- https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh | sh`
+* **Linux:** 
+```bash 
+`curl -sL https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh | sudo bash`
+```
 
+* **OpenWrt:** 
+```bash 
+`wget -qO- https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh | sh`
+```
 ---
 
 ## 🔒 Security Note
