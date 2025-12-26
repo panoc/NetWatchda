@@ -1,5 +1,3 @@
----
-
 # 🌐 NetWatchdta (Universal)
 
 > **The Grand Unified Network Monitor for OpenWrt & Linux**
