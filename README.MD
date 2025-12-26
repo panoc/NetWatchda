@@ -192,6 +192,7 @@ Now you can view the live monitor logs directly from your browser by going to **
 >* The **100% CPU spike** during 50 simultaneous events is due to the heavy math required for 50 concurrent TLS (HTTPS) handshakes. While RAM usage remains safe/low due to shared libraries, the processor may be momentarily saturated, potentially causing brief web interface lag.
 </details>
 
+<details>
 <summary><strong>💡 Click to expand: Hardware Recommendations & Selection Guide</strong></summary>
 
 ### 🎯 Quick Decision Matrix
