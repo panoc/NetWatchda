@@ -7,7 +7,6 @@
 Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **Universal Application**. It automatically detects your operating system, adjusts its dependencies, adjusts default settings based on your hardware and installs as a native system service (`procd` for OpenWrt, `systemd` for Linux).
 
 ---
----
 
 ## ✨ Key Features
 
@@ -146,7 +145,7 @@ Once installed, use the CLI commands to manage the service.
 | **Discord Test** | `netwatchdta discord` | `/etc/init.d/netwatchdta discord` | Sends a manual test alert to Discord. |
 | **Telegram Test** | `netwatchdta telegram` | `/etc/init.d/netwatchdta telegram` | Sends a manual test alert to Telegram. |
 | **Credentials** | `netwatchdta credentials` | `/etc/init.d/netwatchdta credentials` | Re-enter/Update API tokens & Webhooks. |
-| **Edit settings** | `netwatchdta edit` | `/etc/init.d/netwatchdta edit` | Edit settings menu. |
+| **Edit Settings** | `netwatchdta edit` | `/etc/init.d/netwatchdta edit` | Edit settings menu. |
 | **Uninstall** | `netwatchdta purge` | `/etc/init.d/netwatchdta purge` | Launch the interactive uninstaller. |
 </details>
 <br>
