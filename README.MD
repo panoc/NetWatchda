@@ -86,10 +86,11 @@ wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubu
 
 Here is the file list formatted for your GitHub `README.md`. You can copy the code block below directly.
 
-```markdown
+
 ### 📂 File Structure & Locations
 
-**netwatchdta** creates the following files during installation and operation.
+<details>
+<summary><strong>netwatchdta creates the following files during installation and operation.</strong></summary>
 
 #### 1. Installation Directory
 **Location:** `/opt/netwatchdta/` (Linux) or `/root/netwatchdta/` (OpenWrt).
@@ -123,8 +124,7 @@ These files integrate the script with your operating system.
 | **OpenWrt** | `/etc/init.d/netwatchdta` | Procd init script to manage the service. |
 | **Linux** | `/etc/systemd/system/netwatchdta.service` | Systemd unit file to manage the service. |
 | **Linux** | `/usr/local/bin/netwatchdta` | CLI wrapper command (allows typing `netwatchdta` directly). |
-
-```
+<details>
 
 ---
 
