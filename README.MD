@@ -357,7 +357,7 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 *Auto-selected for RAM > 256MB. All alerts send instantly.*
 
 | Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time  Discord & Telegram | Execution Time Discord & Telegram|
-| :--- | :--- | :--- | :--- | :--- |
+| :--- | :--- | :--- | :--- | :--- | :--- |
 | **1 Event** | ~0.6 MB | ~2.5 MB | ~5.0 MB | ~1 | ~2s |
 | **5 Events** | ~3.0 MB | ~12.5 MB | ~25.0 MB | ~1s |
 | **50 Events** | **~30.0 MB** | **~125.0 MB** ⚠️ | **~250.0 MB** | **~2s** | **~4s** |
