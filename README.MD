@@ -320,8 +320,6 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 *Logic: The script sends sequentially (Discord → Wait → Telegram), so RAM usage is based on the single peak of the active tool, but Execution Time doubles.*
 
 #### **Method 1: Parallel Mode (High Performance)**
-
-#### **Method 1: Parallel Mode (High Performance)**
 *Auto-selected for RAM > 256MB. All alerts send instantly.*
 
 | Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time  Single | Execution Time Dual |
