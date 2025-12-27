@@ -18,18 +18,17 @@ Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **
 
 ## ✨ Key Features
 
-* **🦄 Universal Installer:** One script works on OpenWrt routers, Raspberry Pis, VPSs, and Desktop Linux.
-* **🧠 Smart Engine:**
+* ** Universal Installer:** One script works on OpenWrt routers, Raspberry Pis, VPSs, and Desktop Linux.
+* ** Universal Compatibility: Runs on OpenWrt (Ash) and Standard Linux (Bash/Systemd).
+* ** Smart Engine:**
      * **OpenWrt:** Uses `uclient-fetch` and minimal RAM logic.
      * **Linux:** Uses `curl` and `systemd` for maximum stability.
-
-
-* **🔔 Dual Notifications:** Send alerts to **Discord** (with rich embeds) and **Telegram** simultaneously or selectively.
-* **🛡️ Encryption Vault:** Credentials (tokens/webhooks) are encrypted using OpenSSL AES-256 and locked to your specific hardware.
-* **📂 Offline Buffer:** If the internet goes down, alerts are queued and delivered in bulk once connectivity is restored. No notifications are lost.
-* **🌙 Silent Mode:** Mute alerts during specific hours (e.g., sleeping time), but keep logging them to the buffer.
-* **💓 Heartbeat:** Periodic "I am alive" messages to confirm the system is running.
-* **🌍 Multi-Tier Monitoring:**
+* ** Dual Notifications:** Send alerts to **Discord** (with rich embeds) and **Telegram** simultaneously or selectively.
+* ** Encryption Vault:** Credentials (tokens/webhooks) are encrypted using OpenSSL AES-256 and locked to your specific hardware.
+* ** Offline Buffer:** If the internet goes down, alerts are queued and delivered in bulk once connectivity is restored. No notifications are lost.
+* ** Silent Mode:** Mute alerts during specific hours (e.g., sleeping time), but keep logging them to the buffer.
+* ** Heartbeat:** Periodic "I am alive" messages to confirm the system is running.
+* ** Multi-Tier Monitoring:**
      * **Internet (WAN):** Checks external IPs (Cloudflare/Google/Custom).
      * **Local (LAN):** Monitors devices on your network (e.g., NAS, Cameras).
      * **Remote:** Monitors external servers (only checks if WAN is UP).
