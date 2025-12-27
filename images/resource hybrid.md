@@ -94,6 +94,9 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 | **50 Events** | **~15.0 MB** 🟢 | **~17.0 MB** 🟢 | **~152.0 MB** | **~100s** 🕒 |
 
 > **⚠️ The Trade-off:** In Queue Mode with 50 mass failures sending to both Discord & Telegram, the last notification will arrive **~100 seconds (1.5 mins)** after the event. This delay is intentional to save your router from crashing due to OOM (Out of Memory).
+> > **ℹ️ Analytic Conclusion:**
+> * **Why is "Dual Notif" lower?** In Queue Mode, sending to two platforms doubles the execution time per event. Monitoring 100 devices with Dual Notifications would result in a **~3.5 minute delay** for the last alert to arrive.
+> * **Recommendation:** If monitoring >50 devices on a low-end router, stick to **Single Notification** (e.g., Discord only) to keep alerts timely.
 ---
 
 ## 📈 Hardware Recommendations (v1.3.6)
@@ -146,9 +149,7 @@ Safe Device Limits Table<
 | **Mid-Range (ARM)** | Pi Zero 2, Flint 2, Pi 3  | **~20 MB (Negligible)** | **100+ Devices**<br>*(~100s delay)* | **~50 - 60 Devices**<br>*(~100s delay)* | **✅ YES** |
 | **High-End x86 / ARM** | N100, Pi 4/5, NanoPi R6 | **Negligible** | **Unlimited** | **Unlimited** | **❌ Unnecessary** |
 
-> **ℹ️ Analytic Conclusion:**
-> * **Why is "Dual Notif" lower?** In Queue Mode, sending to two platforms doubles the execution time per event. Monitoring 100 devices with Dual Notifications would result in a **~3.5 minute delay** for the last alert to arrive.
-> * **Recommendation:** If monitoring >50 devices on a low-end router, stick to **Single Notification** (e.g., Discord only) to keep alerts timely.
+
 
 
 
