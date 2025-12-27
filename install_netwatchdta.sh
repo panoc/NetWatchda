@@ -145,7 +145,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Universal Setup${NC} v1.3.6"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Universal Setup${NC} v1.3.7"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo -e "${WHITE}🖥️  System Detected : ${GREEN}$OS_TYPE${NC}"
@@ -929,8 +929,8 @@ check_ip_logic() {
             
             # -- CUSTOMIZE SUCCESS MESSAGES HERE --
             local D_MSG="**Router:** $ROUTER_NAME\n**${TYPE}:** $NAME ($TIP)\n**Down at:** $DSTART\n**Outage:** $DR_STR"
-            local T_MSG="🟢 ${TYPE} UP* $ROUTER_NAME - $NAME - $TIP - $NOW_HUMAN - Downtime duration: $DR_STR"
-            log_msg "[SUCCESS] ${TYPE}: $NAME Online - Downtime duration: $DR_STR)" "UPTIME" "$NOW_HUMAN"
+            local T_MSG="🟢 ${TYPE} UP* $ROUTER_NAME - $NAME - $TIP - $NOW_HUMAN - Downtime: $DR_STR"
+            log_msg "[SUCCESS] ${TYPE}: $NAME Online - Downtime: $DR_STR)" "UPTIME" "$NOW_HUMAN"
             
             if [ "$IS_SILENT" -eq 1 ]; then
                  [ -f "$SILENT_BUFFER" ] && [ $(wc -c < "$SILENT_BUFFER") -lt 5120 ] && echo "${TYPE} $NAME UP: $NOW_HUMAN (Down $DR_STR)" >> "$SILENT_BUFFER"
@@ -1032,8 +1032,8 @@ while true; do
                     read START_TIME < "$FT"; read START_SEC < "$FD"
                     DUR=$((NOW_SEC - START_SEC)); DR="$((DUR/60))m $((DUR%60))s"
                     MSG_D="**Router:** $ROUTER_NAME\n**Down at:** $START_TIME\n**Up at:** $NOW_HUMAN\n**Total Outage:** $DR"
-                    MSG_T="🟢 Connectivity Restored * $ROUTER_NAME - Down time: $START_TIME - UP time: $NOW_HUMAN - Duration: $DR"
-                    log_msg "[SUCCESS] INTERNET UP (Down $DR)" "UPTIME" "$NOW_HUMAN"
+                    MSG_T="🟢 Connectivity Restored * $ROUTER_NAME - Down time: $START_TIME - UP time: $NOW_HUMAN - Downtime: $DR"
+                    log_msg "[SUCCESS] INTERNET UP - Downtime: $DR" "UPTIME" "$NOW_HUMAN"
                     if [ "$IS_SILENT" -eq 0 ]; then
                         send_notification "🟢 Connectivity Restored" "$MSG_D" "3066993" "SUCCESS" "BOTH" "YES" "$MSG_T" "$DISCORD_MENTION_NET"
                         flush_buffer
@@ -1505,7 +1505,6 @@ if [ "$SERVICE_TYPE" = "PROCD" ]; then
     echo -e "  Status           : ${YELLOW}/etc/init.d/netwatchdta check${NC}"
     echo -e "  Logs             : ${YELLOW}/etc/init.d/netwatchdta logs${NC}"
     echo -e "  Uninstall        : ${RED}/etc/init.d/netwatchdta purge${NC}"
-    echo -e "  Manage Creds     : ${YELLOW}/etc/init.d/netwatchdta credentials${NC}"
     echo -e "  Edit Settings    : ${YELLOW}/etc/init.d/netwatchdta edit${NC}"
     echo -e "  Restart          : ${YELLOW}/etc/init.d/netwatchdta restart${NC}"
 else
