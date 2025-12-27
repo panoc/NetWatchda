@@ -350,23 +350,28 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 ### 4. 🔔 Notification Phase (The Hybrid Engine)
 *Resource usage depends on the **Execution Mode** (Parallel vs. Queue) and the number of destinations.*
 
-### **A. Single Destination (Discord OR Telegram)**
+**A. Single Destination (Discord OR Telegram)**
 *Scenario: Sending alerts to one platform.*
+**B. Dual Destination (Discord AND Telegram)**
+*Scenario: Sending alerts to BOTH platforms for every event.*
+*Logic: The script sends sequentially (Discord → Wait → Telegram), so RAM usage is based on the single peak of the active tool, but Execution Time doubles.*
+
+#### **Method 1: Parallel Mode (High Performance)**
 
 #### **Method 1: Parallel Mode (High Performance)**
 *Auto-selected for RAM > 256MB. All alerts send instantly.*
 
-| Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time  Discord & Telegram | Execution Time Discord & Telegram|
+| Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time  Single | Execution Time Dual |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1 Event** | ~0.6 MB | ~2.5 MB | ~5.0 MB | ~1 | ~2s |
-| **5 Events** | ~3.0 MB | ~12.5 MB | ~25.0 MB | ~1s |
+| **5 Events** | ~3.0 MB | ~12.5 MB | ~25.0 MB | ~1s | ~2s |
 | **50 Events** | **~30.0 MB** | **~125.0 MB** ⚠️ | **~250.0 MB** | **~2s** | **~4s** |
 
 #### **Method 2: Queue Mode (Low RAM / Safe)**
 *Auto-selected for RAM < 256MB. Alerts wait in line.*
 *Formula: `(1 Active Transfer) + (N-1 Waiting Shells)`*
 
-| Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time  Discord & Telegram | Execution Time Discord & Telegram|
+| Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time  Discord & Telegram | Execution Time Discord & Telegram |
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **1 Event** | ~0.6 MB | ~2.5 MB | ~5.0 MB | ~1s | ~10s |
 | **5 Events** | ~2.0 MB | ~4.0 MB | ~17.0 MB | ~5s | ~10s |
