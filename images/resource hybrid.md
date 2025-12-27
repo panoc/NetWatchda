@@ -98,8 +98,7 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 ## 📈 Hardware Recommendations (v1.3.6)
 
-<details>
-<summary><strong>Click to expand: Safe Device Limits Table</strong></summary>
+### Safe Device Limits Table
 
 ### **1. Method 1: Parallel Mode**
 *Best for: Devices with >256MB RAM. Instant Alerts.*
@@ -123,4 +122,3 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 > * **OpenWrt Users:** Even on ancient hardware, you can monitor 50+ devices safely using **Queue Mode**.
 > * **Linux Users:** Due to Bash memory overhead, monitoring 50+ devices requires at least **512MB RAM**, regardless of mode.
 
-</details>
