@@ -205,7 +205,7 @@ if [ "$OS_TYPE" = "OPENWRT" ]; then
         EXEC_MSG="Parallel (High RAM Detected: $((TOTAL_PHY_MEM_KB/1024))MB)"
     else
         AUTO_EXEC_METHOD="2"
-        EXEC_MSG="Sequential (Low RAM Detected: $((TOTAL_PHY_MEM_KB/1024))MB)"
+        EXEC_MSG="Queue Mode (Low RAM Detected: $((TOTAL_PHY_MEM_KB/1024))MB)"
     fi
 
     # 4. Define Dependency List (OpenWrt)
@@ -546,7 +546,7 @@ ROUTER_NAME="$router_name_input"
 # WARNING: Change only if you know what you are doing. Default: AUTO
 FETCH_TOOL="$F_TOOL"
 
-# EXEC_METHOD: 1=Parallel (Fast, >256MB RAM), 2=Sequential Notification (Safe, Low RAM)
+# EXEC_METHOD: 1=Parallel (Fast, >256MB RAM), 2=Queue Mode (Safe, Low RAM)
 EXEC_METHOD=$AUTO_EXEC_METHOD
 
 [Log Settings]
@@ -1060,7 +1060,7 @@ while true; do
                 line=$(echo "$line" | tr -d '\r'); IP="${line%%@*}"; IP="${IP%% }"; IP="${IP## }"; NAME="${line#*@}"; NAME="${NAME## }"; [ "$NAME" = "$line" ] && NAME="$IP"
                 [ -n "$IP" ] && check_ip_logic "$IP" "$NAME" "Device" "$DEV_FAIL_THRESHOLD" "$DEV_PING_COUNT" "$DEV_PING_TIMEOUT" &
             done < "$IP_LIST_FILE"
-            [ "$EXEC_METHOD" -eq 1 ] && wait
+            wait
         fi
     fi
 
@@ -1073,7 +1073,7 @@ while true; do
                 line=$(echo "$line" | tr -d '\r'); IP="${line%%@*}"; IP="${IP%% }"; IP="${IP## }"; NAME="${line#*@}"; NAME="${NAME## }"; [ "$NAME" = "$line" ] && NAME="$IP"
                 [ -n "$IP" ] && check_ip_logic "$IP" "$NAME" "Remote" "$REM_FAIL_THRESHOLD" "$REM_PING_COUNT" "$REM_PING_TIMEOUT" &
             done < "$REMOTE_LIST_FILE"
-            [ "$EXEC_METHOD" -eq 1 ] && wait
+            wait
         fi
     fi
     sleep 1
@@ -1112,12 +1112,12 @@ start_service() {
 }
 
 check() {
-    local v=$(grep "^VERSION=" "$INSTALL_DIR/netwatchdta.sh" | cut -d'"' -f2) # <--- READ VERSION
+    local v=\$(grep "^VERSION=" "$INSTALL_DIR/netwatchdta.sh" | cut -d'"' -f2)
     if pgrep -f "netwatchdta.sh" > /dev/null; then
-        echo -e "\033[1;32m● netwatchdta is RUNNING.\033[0m (v$v)" # <--- DISPLAY IT
+        echo -e "\033[1;32m● netwatchdta is RUNNING.\033[0m (v\$v)"
         echo "   PID: \$(pgrep -f "netwatchdta.sh" | head -1)"
     else
-        echo -e "\033[1;31m● netwatchdta is STOPPED.\033[0m (v$v)" # <--- DISPLAY IT
+        echo -e "\033[1;31m● netwatchdta is STOPPED.\033[0m (v\$v)"
     fi
 }
 
@@ -1393,10 +1393,11 @@ case "\$1" in
     stop) systemctl stop netwatchdta; echo "Stopped." ;;
     restart) systemctl restart netwatchdta; echo "Restarted." ;;
     status|check) 
+        local v=\$(grep "^VERSION=" "$INSTALL_DIR/netwatchdta.sh" | cut -d'"' -f2)
         if systemctl is-active --quiet netwatchdta; then
-            echo -e "\033[1;32m● netwatchdta is RUNNING.\033[0m"
+            echo -e "\033[1;32m● netwatchdta is RUNNING.\033[0m (v\$v)"
         else
-            echo -e "\033[1;31m● netwatchdta is STOPPED.\033[0m"
+            echo -e "\033[1;31m● netwatchdta is STOPPED.\033[0m (v\$v)"
         fi
         systemctl status netwatchdta --no-pager | head -n 5
         ;;
