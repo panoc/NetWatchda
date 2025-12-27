@@ -137,7 +137,7 @@ Safe Device Limits Table<
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Legacy (MIPS)** | Ubiquiti ER-X, Xiaomi 4A | **💀 CRITICAL (~125 MB)** | **~10 - 15 Devices** | **~5 - 10 Devices** | **❌ NO** |
 | **Mid-Range (ARM)** | Pi Zero 2, Flint 2, Pi 3 | **High Spike (~150 MB)** | **~30 - 40 Devices** | **~20 - 30 Devices** | **⚠️ CAUTION** |
-| **High-End (x86)** | N100, Pi 4/5, NanoPi R6S | **Low Load** | **200+ Devices** | **150+ Devices** | **✅ YES** |
+| **High-End x86/ARM** | N100, Pi 4/5, NanoPi R6S | **Low Load** | **200+ Devices** | **150+ Devices** | **✅ YES** |
 
 ### **2. Method 2: Queue Mode**
 *Auto-selected for devices with **<256MB RAM**. Guaranteed Stability.*
@@ -147,7 +147,7 @@ Safe Device Limits Table<
 | :--- | :--- | :--- | :--- | :--- | :--- |
 | **Legacy (MIPS)** | Ubiquiti ER-X, R6220, Xiaomi 4A | **~17 MB (Very Safe)** | **~50 - 70 Devices**<br>*(~50s delay)* | **~30 - 40 Devices**<br>*(~60s delay)* | **✅ YES** |
 | **Mid-Range (ARM)** | Pi Zero 2, Flint 2, Pi 3  | **~20 MB (Negligible)** | **100+ Devices**<br>*(~100s delay)* | **~50 - 60 Devices**<br>*(~100s delay)* | **✅ YES** |
-| **High-End x86 / ARM** | N100, Pi 4/5, NanoPi R6 | **Negligible** | **Unlimited** | **Unlimited** | **❌ Unnecessary** |
+| **High-End x86/ARM** | N100, Pi 4/5, NanoPi R6 | **Negligible** | **Unlimited** | **Unlimited** | **❌ Unnecessary** |
 
 
 
