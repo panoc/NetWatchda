@@ -145,7 +145,7 @@ safe_fetch() {
 #  INSTALLER HEADER
 # ==============================================================================
 echo -e "${BLUE}=======================================================${NC}"
-echo -e "${BOLD}${CYAN}🚀 netwatchdta Universal Setup${NC} v1.3.5"
+echo -e "${BOLD}${CYAN}🚀 netwatchdta Universal Setup${NC} v1.3.6"
 echo -e "${BLUE}⚖️  License: GNU GPLv3${NC}"
 echo -e "${BLUE}=======================================================${NC}"
 echo -e "${WHITE}🖥️  System Detected : ${GREEN}$OS_TYPE${NC}"
@@ -545,7 +545,7 @@ ROUTER_NAME="$router_name_input"
 # WARNING: Change only if you know what you are doing. Default: AUTO
 FETCH_TOOL="$F_TOOL"
 
-# EXEC_METHOD: 1=Parallel (Fast, >256MB RAM), 2=Sequential (Safe, Low RAM)
+# EXEC_METHOD: 1=Parallel (Fast, >256MB RAM), 2=Sequential Notification (Safe, Low RAM)
 EXEC_METHOD=$AUTO_EXEC_METHOD
 
 [Log Settings]
@@ -602,19 +602,11 @@ REM_PING_COUNT=4 # Number of packets per remote check. Default is 4.
 REM_PING_TIMEOUT=5 # Seconds to wait for remote ping response. Default is 5.
 EOF
 
-    # Generate default IP list
+    # Generate default IP list (CLEAN - NO AUTO DETECT)
     cat <<EOF > "$IP_LIST_FILE"
 # Format: IP_ADDRESS @ NAME
 # Example: 192.168.1.50 @ Home Server
 EOF
-    # Attempt to auto-detect local gateway IP for user convenience
-    #if [ "$OS_TYPE" = "OPENWRT" ]; then
-    #    LOCAL_IP=$(uci -q get network.lan.ipaddr || ip addr show br-lan 2>/dev/null | grep -oE 'inet ([0-9]{1,3}\.){3}[0-9]{1,3}' | head -1 | awk '{print $2}')
-    #else
-        # Standard Linux detection (using hostname -I)
-    #    LOCAL_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
-    #fi
-    #[ -n "$LOCAL_IP" ] && echo "$LOCAL_IP @ Router Gateway" >> "$IP_LIST_FILE"
 
     # Generate default Remote IP list
     cat <<EOF > "$REMOTE_LIST_FILE"
@@ -854,7 +846,7 @@ EOF
 chmod +x "$INSTALL_DIR/netwatchdta.sh"
 cat <<'EOF' >> "$INSTALL_DIR/netwatchdta.sh"
 
-# --- HELPER: NOTIFICATION SENDER ---
+# --- HELPER: NOTIFICATION SENDER (WITH LOW-RAM LOCK) ---
 send_notification() {
     local title="$1"; local desc="$2"; local color="$3"; local type="$4"; local filter="$5"; local force="$6"; local tel_text="$7"; local mention="$8"
     
@@ -878,6 +870,16 @@ send_notification() {
         log_msg "[BUFFER] Internet Down. Notification buffered." "UPTIME" "$NOW_HUMAN"
         return
     fi
+    
+    # --- SEQUENTIAL LOCK (Method 2 Only) ---
+    if [ "$EXEC_METHOD" -eq 2 ]; then
+        local w_count=0
+        while ! mkdir "/tmp/nwdta.lock" 2>/dev/null; do
+            sleep 1
+            w_count=$((w_count + 1))
+            if [ "$w_count" -ge 20 ]; then break; fi # Prevent infinite hang
+        done
+    fi
 
     if ! send_payload "$title" "$desc" "$color" "$filter" "$tel_text" "$mention"; then
         if [ -f "$OFFLINE_BUFFER" ] && [ $(wc -c < "$OFFLINE_BUFFER") -ge 5120 ]; then
@@ -888,6 +890,11 @@ send_notification() {
              echo "${title}|||${clean_desc}|||${color}|||${filter}|||${clean_tel}|||${mention}" >> "$OFFLINE_BUFFER"
              log_msg "[BUFFER] Send failed. Buffered." "UPTIME" "$NOW_HUMAN"
         fi
+    fi
+    
+    # --- RELEASE LOCK (Method 2 Only) ---
+    if [ "$EXEC_METHOD" -eq 2 ]; then
+        rmdir "/tmp/nwdta.lock" 2>/dev/null
     fi
 }
 
@@ -1498,6 +1505,7 @@ if [ "$SERVICE_TYPE" = "PROCD" ]; then
     echo -e "  Status           : ${YELLOW}/etc/init.d/netwatchdta check${NC}"
     echo -e "  Logs             : ${YELLOW}/etc/init.d/netwatchdta logs${NC}"
     echo -e "  Uninstall        : ${RED}/etc/init.d/netwatchdta purge${NC}"
+    echo -e "  Manage Creds     : ${YELLOW}/etc/init.d/netwatchdta credentials${NC}"
     echo -e "  Edit Settings    : ${YELLOW}/etc/init.d/netwatchdta edit${NC}"
     echo -e "  Restart          : ${YELLOW}/etc/init.d/netwatchdta restart${NC}"
 else
