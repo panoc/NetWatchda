@@ -364,14 +364,14 @@ If the installation is broken, use the remote uninstaller:
 
 ---
 
-# 📊 Performance & Resource Analysis (v1.3.6)
+## 📊 Performance & Resource Analysis (v1.3.6)
 
 This document provides a detailed technical breakdown of **netwatchdta v1.3.6** resource usage.
 Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`) and **Standard Linux**.
 
 ---
 
-## 1. 💾 Disk / Flash Storage Requirements
+### 1. 💾 Disk / Flash Storage Requirements
 *Space required for installation (Script + Dependencies).*
 
 | Component | OpenWrt (uclient-fetch) | OpenWrt (curl) | Linux (Standard) | Notes |
@@ -383,7 +383,7 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 ---
 
-## 2. 💤 RAM Usage at Idle
+### 2. 💤 RAM Usage at Idle
 *Baseline memory usage when the service is sleeping between checks.*
 
 | Platform | Shell | RAM Usage | Why the difference? |
@@ -393,7 +393,7 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 ---
 
-## 3. 📡 Scanning Phase (Forced Parallel)
+### 3. 📡 Scanning Phase (Forced Parallel)
 *In v1.3.6, scanning is **always parallel** to ensure millisecond-precision detection.*
 *Metrics indicate the temporary spike during the ~1 second check window.*
 
@@ -410,7 +410,7 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 ---
 
-## 4. 🔔 Notification Phase (The Hybrid Engine)
+### 4. 🔔 Notification Phase (The Hybrid Engine)
 *Resource usage depends on the **Execution Mode** (Parallel vs. Queue) and the number of destinations.*
 
 ### **A. Single Destination (Discord OR Telegram)**
@@ -465,7 +465,7 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 > * **Recommendation:** If monitoring >50 devices on a low-end router, stick to **Single Notification** (e.g., Discord only) to keep alerts timely.
 ---
 
-## 📈 Hardware Recommendations (v1.3.6)
+### 📈 Hardware Recommendations (v1.3.6)
 
 ### Safe Device Limits Table
 
@@ -491,11 +491,11 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 > * **OpenWrt Users:** Even on ancient hardware, you can monitor 50+ devices safely using **Queue Mode**.
 > * **Linux Users:** Due to Bash memory overhead, monitoring 50+ devices requires at least **512MB RAM**, regardless of mode.
 
-## 📈 Hardware Recommendations (v1.3.6)
+### 📈 Hardware Recommendations (v1.3.6)
 
 Safe Device Limits Table<
 
-### **1. Method 1: Parallel Mode**
+#### **1. Method 1: Parallel Mode**
 *Auto-selected for devices with **>256MB RAM**. Instant Alerts.*
 *Limiting Factor: RAM Spike (Risk of Crash).*
 
@@ -505,7 +505,7 @@ Safe Device Limits Table<
 | **Mid-Range (ARM)** | Pi Zero 2, Flint 2, Pi 3 | **High Spike (~150 MB)** | **~30 - 40 Devices** | **~20 - 30 Devices** | **⚠️ CAUTION** |
 | **High-End x86/ARM** | N100, Pi 4/5, NanoPi R6S | **Low Load** | **200+ Devices** | **150+ Devices** | **✅ YES** |
 
-### **2. Method 2: Queue Mode**
+#### **2. Method 2: Queue Mode**
 *Auto-selected for devices with **<256MB RAM**. Guaranteed Stability.*
 *Limiting Factor: Time Delay (Alerts arrive late).*
 
