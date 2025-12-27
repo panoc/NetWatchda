@@ -107,8 +107,7 @@ It features a unique **"Hybrid Execution Engine"** that combines **Parallel Scan
 
 ## 📈 Hardware Recommendations (v1.3.6)
 
-<details>
-<summary><strong>Click to expand: Safe Device Limits Table</strong></summary>
+### Safe Device Limits Table
 
 ### **1. Method 1: Parallel Mode**
 *Auto-selected for devices with **>256MB RAM**. Instant Alerts.*
@@ -134,12 +133,6 @@ It features a unique **"Hybrid Execution Engine"** that combines **Parallel Scan
 > * **Why is "Dual Notif" lower?** In Queue Mode, sending to two platforms doubles the execution time per event. Monitoring 100 devices with Dual Notifications would result in a **~3.5 minute delay** for the last alert to arrive.
 > * **Recommendation:** If monitoring >50 devices on a low-end router, stick to **Single Notification** (e.g., Discord only) to keep alerts timely.
 
-</details>
-
-<br>
-
-<details>
-<summary><strong>Click to expand: Quick Decision Matrix</strong></summary>
 
 ### 🎯 Quick Decision Matrix
 *Choose the right hardware based on your intended usage.*
@@ -150,7 +143,7 @@ It features a unique **"Hybrid Execution Engine"** that combines **Parallel Scan
 | **Monitoring + Network Services**<br>*(AdGuard, VPN Client)* | **Mid-Range SBC**<br>*(Balanced)* | **Method 1**<br>*(Standard)* | Raspberry Pi 3/4, NanoPi R4S, Flint 2 |
 | **Heavy Multitasking**<br>*(Gigabit Routing, NAS)* | **High-End x86 / ARM**<br>*(Performance)* | **Method 1**<br>*(Standard)* | NanoPi R6S, Intel N100, Raspberry Pi 5 |
 
-</details>
+
 
 ---
 
