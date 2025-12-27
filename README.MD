@@ -231,43 +231,6 @@ Now you can view the live monitor logs directly from your browser by going to **
 
 ---
 
-### 👤 **Profile 1: The "Pure Watchdog"**
-* **Goal:** You want a cheap, dedicated device just to monitor your other servers/internet. You don't want to spend money on new hardware.
-* **The Problem:** Low-end devices (like the **Pi Zero 1** or **MIPS routers**) lack hardware encryption.
-* **The Fix:** You **must** use **Sequential Mode**.
-* **Why:** Sequential mode creates ZERO resource spikes. Even a device from 2013 can monitor 1,000 IPs safely if it checks them one by one.
-* **Recommended Devices:**
-    * **Raspberry Pi Zero W:** Tiny, wireless, runs off a phone charger.
-    * **Old Router (e.g., Archer C7, Xiaomi 4A):** Flash OpenWrt on it and give it a second life as a dedicated monitor.
-
-### 👤 **Profile 2: The "Network Enhancer"**
-* **Goal:** You want to run the monitoring script *alongside* moderate network tasks like **AdGuard Home** (ad blocking), **Tailscale** (VPN), or a **Unifi Controller**.
-* **The Constraint:** You need a device with **ARMv8** architecture (modern 64-bit CPU). This gives you the "Crypto Extensions" needed to handle the script's SSL alerts without slowing down your DNS or VPN.
-* **Mode:** **Parallel Mode** is safe here, but keep the "Concurrent Failures" setting reasonable (don't expect it to handle 100 simultaneous failures without a hiccup).
-* **Recommended Devices:**
-    * **Raspberry Pi 3B+ / 4:** The standard choice.
-    * **NanoPi R4S:** Excellent networking performance for the price.
-    * **GL.iNet Flint 2:** A powerful router that can run this script natively without affecting Wi-Fi speeds.
-
-### 👤 **Profile 3: The "Power User / Lab"**
-* **Goal:** This device is your **Main Router** (handling Gigabit fiber) OR a **Home Server** (running Docker, Home Assistant, Plex/Jellyfin).
-* **The Reality:** The monitoring script is negligible for these devices. You can run **Parallel Mode** with 200+ devices and the CPU won't even blink.
-* **Why:** These CPUs (Intel N100, RK3588) have massive power reserves. The script's 100-200MB RAM usage is a "drop in the bucket" for systems with 4GB+ RAM.
-* **Recommended Devices:**
-    * **NanoPi R6S:** The king of ARM routers (dual 2.5Gbps ports).
-    * **Intel N100 Mini PC:** The ultimate low-power x86 server.
-    * **Raspberry Pi 5:** Overkill for just monitoring, but perfect if running a full homelab.
-
-> **⚠️ The "Golden Rule" of Stability**
-> If you are ever in doubt, or if your device feels sluggish:
-> **Switch to Sequential Mode.**
->
-> It is better to receive your 50th alert **2 minutes late** than to have your monitoring device **crash** because it tried to send them all at the exact same second.
-</details>
-<br>
-
----
-
 ## 🗑️ Uninstallation
 
 You have two ways to uninstall the tool. Both launch the interactive **Smart Uninstaller** which asks if you want to remove everything or keep your settings.
@@ -301,7 +264,7 @@ If the installation is broken, use the remote uninstaller:
 
 ---
 
-## 📊 Performance & Resource Analysis (v1.3.6)
+## 📊 Performance & Resource Analysis
 
 This document provides a detailed technical breakdown of **netwatchdta v1.3.6** resource usage.
 Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`) and **Standard Linux**.
@@ -379,35 +342,13 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 ---
 
-### **B. Dual Destination (Discord AND Telegram)**
-*Scenario: Sending alerts to BOTH platforms for every event.*
-*Logic: The script sends sequentially (Discord → Wait → Telegram), so RAM usage is based on the single peak of the active tool, but Execution Time doubles.*
-
-#### **Method 1: Parallel Mode (High Performance)**
-*Auto-selected for RAM > 256MB. All alerts start immediately.*
-
-| Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time |
-| :--- | :--- | :--- | :--- | :--- |
-| **1 Event** | ~0.6 MB | ~2.5 MB | ~5.0 MB | ~2s | ~2s |
-| **5 Events** | ~3.0 MB | ~12.5 MB | ~25.0 MB | ~2s | ~2s |
-| **50 Events** | **~30.0 MB** | **~125.0 MB** ⚠️ | **~250.0 MB** | **~4s** |
-
-#### **Method 2: Queue Mode (Low RAM / Safe)**
-*Critical for preventing crashes on weak devices.*
-
-| Scale | OpenWrt (uclient) | OpenWrt (curl) | Linux (curl) | Execution Time |
-| :--- | :--- | :--- | :--- | :--- |
-| **1 Event** | ~0.6 MB | ~2.5 MB | ~5.0 MB | ~10s |
-| **5 Events** | ~2.0 MB | ~4.0 MB | ~17.0 MB | ~10s |
-| **50 Events** | **~15.0 MB** 🟢 | **~17.0 MB** 🟢 | **~152.0 MB** | **~100s** 🕒 |
-
 > **⚠️ The Trade-off:** In Queue Mode with 50 mass failures sending to both Discord & Telegram, the last notification will arrive **~100 seconds (1.5 mins)** after the event. This delay is intentional to save your router from crashing due to OOM (Out of Memory).
-> > **ℹ️ Analytic Conclusion:**
+>  **ℹ️ Analytic Conclusion:**
 > * **Why is "Dual Notif" lower?** In Queue Mode, sending to two platforms doubles the execution time per event. Monitoring 100 devices with Dual Notifications would result in a **~3.5 minute delay** for the last alert to arrive.
 > * **Recommendation:** If monitoring >50 devices on a low-end router, stick to **Single Notification** (e.g., Discord only) to keep alerts timely.
 ---
 
-### 📈 Hardware Recommendations (v1.3.6)
+### 📈 Hardware Recommendations
 
 ### Safe Device Limits Table
 
@@ -457,6 +398,39 @@ Safe Device Limits Table<
 | **Mid-Range (ARM)** | Pi Zero 2, Flint 2, Pi 3  | **~20 MB (Negligible)** | **100+ Devices**<br>*(~100s delay)* | **~50 - 60 Devices**<br>*(~100s delay)* | **✅ YES** |
 | **High-End x86/ARM** | N100, Pi 4/5, NanoPi R6 | **Negligible** | **Unlimited** | **Unlimited** | **❌ Unnecessary** |
 
+### 👤 **Profile 1: The "Pure Watchdog"**
+* **Goal:** You want a cheap, dedicated device just to monitor your other servers/internet. You don't want to spend money on new hardware.
+* **The Problem:** Low-end devices (like the **Pi Zero 1** or **MIPS routers**) lack hardware encryption.
+* **The Fix:** You **must** use **Sequential Mode**.
+* **Why:** Sequential mode creates ZERO resource spikes. Even a device from 2013 can monitor 1,000 IPs safely if it checks them one by one.
+* **Recommended Devices:**
+    * **Raspberry Pi Zero W:** Tiny, wireless, runs off a phone charger.
+    * **Old Router (e.g., Archer C7, Xiaomi 4A):** Flash OpenWrt on it and give it a second life as a dedicated monitor.
+
+### 👤 **Profile 2: The "Network Enhancer"**
+* **Goal:** You want to run the monitoring script *alongside* moderate network tasks like **AdGuard Home** (ad blocking), **Tailscale** (VPN), or a **Unifi Controller**.
+* **The Constraint:** You need a device with **ARMv8** architecture (modern 64-bit CPU). This gives you the "Crypto Extensions" needed to handle the script's SSL alerts without slowing down your DNS or VPN.
+* **Mode:** **Parallel Mode** is safe here, but keep the "Concurrent Failures" setting reasonable (don't expect it to handle 100 simultaneous failures without a hiccup).
+* **Recommended Devices:**
+    * **Raspberry Pi 3B+ / 4:** The standard choice.
+    * **NanoPi R4S:** Excellent networking performance for the price.
+    * **GL.iNet Flint 2:** A powerful router that can run this script natively without affecting Wi-Fi speeds.
+
+### 👤 **Profile 3: The "Power User / Lab"**
+* **Goal:** This device is your **Main Router** (handling Gigabit fiber) OR a **Home Server** (running Docker, Home Assistant, Plex/Jellyfin).
+* **The Reality:** The monitoring script is negligible for these devices. You can run **Parallel Mode** with 200+ devices and the CPU won't even blink.
+* **Why:** These CPUs (Intel N100, RK3588) have massive power reserves. The script's 100-200MB RAM usage is a "drop in the bucket" for systems with 4GB+ RAM.
+* **Recommended Devices:**
+    * **NanoPi R6S:** The king of ARM routers (dual 2.5Gbps ports).
+    * **Intel N100 Mini PC:** The ultimate low-power x86 server.
+    * **Raspberry Pi 5:** Overkill for just monitoring, but perfect if running a full homelab.
+
+> **⚠️ The "Golden Rule" of Stability**
+> If you are ever in doubt, or if your device feels sluggish:
+> **Switch to Sequential Mode.**
+>
+> It is better to receive your 50th alert **2 minutes late** than to have your monitoring device **crash** because it tried to send them all at the exact same second.
+</details>
 
 
 
