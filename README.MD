@@ -285,6 +285,8 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 ---
 
+<details>
+
 ### 1. 💾 Disk / Flash Storage Requirements
 
 *Space required for installation (Script + Dependencies).*
@@ -424,7 +426,7 @@ To ensure stability, choose the configuration that matches your hardware capabil
 > It is better to receive your 50th alert **2 minutes late** than to have your monitoring device **crash** because it tried to send them all at the exact same second.
 
 </details>
-
+</details>
 ---
 
 ## 🔒 Security Note
