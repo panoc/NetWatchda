@@ -56,21 +56,23 @@ Originally designed for OpenWrt routers, **v1.x** has been re-engineered as a **
 
 The installer will automatically detect your OS, install necessary dependencies (`curl`, `openssl`, etc.), and set up the service.
 
+#### Option 2: OpenWrt (Routers)
+
+*No sudo required.*
+
+*Requires `Curl` if you have problem with the default uclient-fetch and/or if you want to manually swtich to curl*
+
+```bash
+wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh" && sh /tmp/install_netwatchdta.sh
+
+```
+
 ### Option 1: Linux (Desktop/Server)
 
 *Requires `curl` and `sudo`.*
 
 ```bash
-sudo wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "[https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh](https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh)" && sudo bash /tmp/install_netwatchdta.sh
-
-```
-
-### Option 2: OpenWrt (Routers)
-
-*No sudo required.*
-
-```bash
-wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "[https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh](https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh)" && sh /tmp/install_netwatchdta.sh
+sudo wget --no-check-certificate -qO /tmp/install_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/install_netwatchdta.sh" && sudo bash /tmp/install_netwatchdta.sh
 
 ```
 
@@ -249,29 +251,30 @@ You have two ways to uninstall the tool. Both launch the interactive **Smart Uni
 
 ### Method 1: Built-in (Recommended)
 
-* **Linux:** ```bash
-sudo netwatchdta purge
-
+* **OpenWrt:** 
+```bash 
+/etc/init.d/netwatchdta purge
 ```
 
-* **OpenWrt:** ```bash 
-/etc/init.d/netwatchdta purge
-
+* **Linux:** 
+```bash 
+sudo netwatchdta purge
 ```
 
 ### Method 2: Emergency Script
 
 If the installation is broken, use the remote uninstaller:
 
-* **Linux:** ```bash
-wget --no-check-certificate -qO /tmp/uninstall_netwatchdta.sh "[https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh](https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh)" && sudo bash /tmp/uninstall_netwatchdta.sh
-
+* **OpenWrt:** 
+```bash 
+`wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh" && sh /tmp/uninstall_netwatchdta_wrt.sh`
 ```
 
-* **OpenWrt:** ```bash 
-wget --no-check-certificate -qO /tmp/uninstall_netwatchdta_wrt.sh "[https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta_wrt.sh](https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta_wrt.sh)" && sh /tmp/uninstall_netwatchdta_wrt.sh
-
+* **Linux:** 
+```bash 
+`wget --no-check-certificate -qO /tmp/uninstall_netwatchdta.sh "https://raw.githubusercontent.com/panoc/NetWatchdta/refs/heads/main/uninstall_netwatchdta.sh" && sudo bash /tmp/uninstall_netwatchdta.sh`
 ```
+
 
 ---
 
