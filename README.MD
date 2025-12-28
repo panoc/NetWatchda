@@ -326,16 +326,17 @@ Calculations are provided for **OpenWrt** (using both `uclient-fetch` and `curl`
 
 #### **Mode B: Smart Batching (`SCAN_BATCH_SIZE=AUTO`)**
 
-*Default for RAM < 512MB. Calculates safe limit (Free RAM - 10% Reserve).*
-*Example: 256MB Router (~80MB Free) -> Batch Size ~15.*
+*Default for RAM < 512MB. Dynamically calculates safe limit based on **Free RAM & CPU Cores**.*
+*Example: Single-Core MIPS Router -> Caps at 10 pings/batch.*
 
 | Scale | OpenWrt RAM Spike | CPU Load (MIPS) | Execution Time | Stability |
 | --- | --- | --- | --- | --- |
 | **10 Devices** | ~4.0 MB | Low | ~1s | ✅ High |
-| **50 Devices** | **~6.0 MB** | Moderate | **~4s** | ✅ High |
-| **100 Devices** | **~6.0 MB** | Moderate | **~8s** | ✅ High |
+| **50 Devices** | **~6.0 MB** | Moderate | **~5s** | ✅ High |
+| **100 Devices** | **~6.0 MB** | Moderate | **~10s** | ✅ High |
 
-> **ℹ️ Conclusion:** **Smart Batching** ensures that even ancient routers with 128MB RAM can monitor 100+ devices without crashing, just slightly slower.
+> **ℹ️ Conclusion:** **Smart Batching** ensures that even ancient single-core routers can monitor 100+ devices without freezing, by splitting the work into safe, tiny chunks.
+
 
 ---
 
