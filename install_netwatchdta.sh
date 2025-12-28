@@ -2,7 +2,7 @@
 # netwatchdta Installer - Automated Setup for OpenWrt & Linux (Universal)
 # Copyright (C) 2025 panoc
 # Licensed under the GNU General Public License v3.0
-SCRIPT_VERSION="1.3.9"
+SCRIPT_VERSION="1.4.0"
 
 # ==============================================================================
 #  SELF-CLEANUP MECHANISM
@@ -1228,25 +1228,44 @@ while true; do
         fi
     else EXT_UP_GLOBAL=1; fi
 
-    # --- DYNAMIC BATCH CONFIGURATION (V1.3.9 UPDATE) ---
-    # Calculates how many devices to ping in parallel based on RAM
+    # --- DYNAMIC BATCH CONFIGURATION (V1.3.9 UPDATE WITH CPU AWARENESS) ---
+    # Calculates how many devices to ping in parallel based on RAM AND CPU Cores
     BATCH_LIMIT=50 # Hard cap default
     
     if [ "$SCAN_BATCH_SIZE" = "0" ] || [ -z "$SCAN_BATCH_SIZE" ]; then
         BATCH_LIMIT=999 # Effectively unlimited (Full Parallel)
     elif [ "$SCAN_BATCH_SIZE" = "AUTO" ]; then
-        # Safety Net: Reserve 10% of Total RAM
+        # 1. RAM Safety Calculation (Reserve 10% Total RAM)
         SAFETY_MARGIN=$((TOTAL_RAM_KB / 10))
         USABLE_FREE=$((CUR_FREE_RAM - SAFETY_MARGIN))
         
         if [ "$USABLE_FREE" -le 0 ]; then
-             BATCH_LIMIT=1 # Critical mode: 1 by 1
+             RAM_BATCH_LIMIT=1 
         else
-             # Rule: Use remaining RAM for scanning. Approx 4000KB per ping process.
-             BATCH_LIMIT=$((USABLE_FREE / 4000)) 
+             # Approx 4000KB per ping process overhead
+             RAM_BATCH_LIMIT=$((USABLE_FREE / 4000)) 
         fi
         
-        # Clamp Values
+        # 2. CPU Safety Calculation (Core Count Limiter)
+        CPU_CORES=$(grep -c ^processor /proc/cpuinfo 2>/dev/null || echo 1)
+        [ "$CPU_CORES" -lt 1 ] && CPU_CORES=1
+        
+        if [ "$CPU_CORES" -eq 1 ]; then
+            CPU_BATCH_LIMIT=10  # Single Core = Low Concurrency
+        elif [ "$CPU_CORES" -eq 2 ]; then
+            CPU_BATCH_LIMIT=25  # Dual Core = Medium Concurrency
+        else
+            CPU_BATCH_LIMIT=50  # Quad Core+ = High Concurrency
+        fi
+        
+        # 3. Select the Lower Limit (The Bottleneck Wins)
+        if [ "$RAM_BATCH_LIMIT" -lt "$CPU_BATCH_LIMIT" ]; then
+            BATCH_LIMIT=$RAM_BATCH_LIMIT
+        else
+            BATCH_LIMIT=$CPU_BATCH_LIMIT
+        fi
+        
+        # 4. Final Sanity Clamps
         if [ "$BATCH_LIMIT" -lt 5 ]; then BATCH_LIMIT=5; fi
         if [ "$BATCH_LIMIT" -gt 50 ]; then BATCH_LIMIT=50; fi
     else
