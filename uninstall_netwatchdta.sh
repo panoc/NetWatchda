@@ -3,13 +3,12 @@
 #  NETWATCHDTA UNIVERSAL UNINSTALLER
 # ==============================================================================
 #  Description: Emergency removal tool for netwatchdta
-#  Version: 1.4.0
+#  Version: 1.4.1 (Fixes TTY read error)
 #  Supported OS: OpenWrt & Linux (Systemd)
 #  Copyright (C) 2025 panoc
 # ==============================================================================
 
 # --- SELF-CLEANUP ---
-# The script removes itself after running to keep /tmp clean
 SCRIPT_NAME="$0"
 cleanup() {
     rm -f "$SCRIPT_NAME"
@@ -17,18 +16,17 @@ cleanup() {
 }
 trap cleanup INT TERM EXIT
 
-# --- TERMINAL COLORS ---
-NC='\033[0m'        # No Color (Reset)
-BOLD='\033[1m'      # Bold Text
-RED='\033[1;31m'    # Light Red (Errors)
-GREEN='\033[1;32m'  # Light Green (Success)
-BLUE='\033[1;34m'   # Light Blue (Headers)
-CYAN='\033[1;36m'   # Light Cyan (Info)
-YELLOW='\033[1;33m' # Bold Yellow (Warnings)
-WHITE='\033[1;37m'  # Bold White (High Contrast)
+# --- COLORS ---
+NC='\033[0m'
+BOLD='\033[1m'
+RED='\033[1;31m'
+GREEN='\033[1;32m'
+BLUE='\033[1;34m'
+YELLOW='\033[1;33m'
+WHITE='\033[1;37m'
 
 # ==============================================================================
-#  1. OS DETECTION ENGINE (MATCHING V1.4.0 INSTALLER LOGIC)
+#  1. OS DETECTION ENGINE
 # ==============================================================================
 OS_TYPE="UNKNOWN"
 INSTALL_DIR=""
@@ -48,8 +46,7 @@ elif [ -f /etc/os-release ]; then
     SERVICE_PATH="/etc/systemd/system/netwatchdta.service"
     CLI_PATH="/usr/local/bin/netwatchdta"
 else
-    echo -e "${RED}❌ Critical Error: Unsupported Operating System.${NC}"
-    echo -e "   Supported: OpenWrt, Ubuntu, Debian, CentOS, Fedora, Arch, etc."
+    echo -e "${RED}❌ Error: Unsupported OS.${NC}"
     exit 1
 fi
 
@@ -77,7 +74,8 @@ echo ""
 
 while true; do
     printf "${BOLD}Choice [1-3]: ${NC}"
-    read choice </dev/tty
+    # FIX: Removed </dev/tty to prevent I/O errors in some shells
+    read choice 
     if echo "$choice" | grep -qE "^[1-3]$"; then
         break
     fi
@@ -88,11 +86,9 @@ done
 # ==============================================================================
 case "$choice" in
     1)
-        # --- OPTION 1: FULL UNINSTALL ---
+        # --- FULL UNINSTALL ---
         echo ""
         echo -e "${YELLOW}🛑 Stopping service...${NC}"
-        
-        # Stop & Disable Service
         if [ "$SERVICE_TYPE" = "PROCD" ]; then
             if [ -f "$SERVICE_PATH" ]; then
                 "$SERVICE_PATH" stop >/dev/null 2>&1
@@ -104,32 +100,29 @@ case "$choice" in
         fi
 
         echo -e "${YELLOW}🧹 Cleaning up files...${NC}"
-        
-        # Remove Main Directory (Configs & Scripts)
+        # Remove Main Directory
         if [ -d "$INSTALL_DIR" ]; then
             rm -rf "$INSTALL_DIR"
             echo "   - Removed $INSTALL_DIR"
         fi
         
-        # Remove Temp Logs & Buffers
+        # Remove Temp Logs
         if [ -d "/tmp/netwatchdta" ]; then
             rm -rf "/tmp/netwatchdta"
             echo "   - Removed /tmp/netwatchdta"
         fi
 
-        echo -e "${YELLOW}🔥 Removing system integration...${NC}"
-        
-        # Remove Service File
+        echo -e "${YELLOW}🔥 Removing system service...${NC}"
         if [ -f "$SERVICE_PATH" ]; then
             rm -f "$SERVICE_PATH"
-            echo "   - Removed service file"
+            echo "   - Removed $SERVICE_PATH"
         fi
         
-        # Linux Specific: Remove CLI Wrapper and Reload
+        # Linux Specific: Remove CLI Wrapper
         if [ "$OS_TYPE" = "LINUX" ]; then
             if [ -f "$CLI_PATH" ]; then
                 rm -f "$CLI_PATH"
-                echo "   - Removed CLI command 'netwatchdta'"
+                echo "   - Removed CLI wrapper"
             fi
             systemctl daemon-reload >/dev/null 2>&1
         fi
@@ -139,11 +132,9 @@ case "$choice" in
         ;;
 
     2)
-        # --- OPTION 2: KEEP SETTINGS ---
+        # --- KEEP SETTINGS ---
         echo ""
         echo -e "${YELLOW}🛑 Stopping service...${NC}"
-        
-        # Stop & Disable Service
         if [ "$SERVICE_TYPE" = "PROCD" ]; then
             if [ -f "$SERVICE_PATH" ]; then
                 "$SERVICE_PATH" stop >/dev/null 2>&1
@@ -158,25 +149,21 @@ case "$choice" in
         rm -rf "/tmp/netwatchdta"
 
         echo -e "${YELLOW}🗑️  Removing logic engine...${NC}"
-        # Only remove the script, keep the directory
         if [ -f "$INSTALL_DIR/netwatchdta.sh" ]; then
             rm -f "$INSTALL_DIR/netwatchdta.sh"
-            echo "   - Removed engine script"
+            echo "   - Removed logic engine"
         fi
 
-        echo -e "${YELLOW}🔥 Removing system integration...${NC}"
-        
-        # Remove Service File
+        echo -e "${YELLOW}🔥 Removing system service...${NC}"
         if [ -f "$SERVICE_PATH" ]; then
             rm -f "$SERVICE_PATH"
             echo "   - Removed service file"
         fi
         
-        # Linux Specific: Remove CLI Wrapper
         if [ "$OS_TYPE" = "LINUX" ]; then
             if [ -f "$CLI_PATH" ]; then
                 rm -f "$CLI_PATH"
-                echo "   - Removed CLI command"
+                echo "   - Removed CLI wrapper"
             fi
             systemctl daemon-reload >/dev/null 2>&1
         fi
@@ -184,7 +171,6 @@ case "$choice" in
         echo ""
         echo -e "${GREEN}✅ Logic removed.${NC}"
         echo -e "${CYAN}ℹ️  Settings preserved in: $INSTALL_DIR${NC}"
-        echo -e "   (settings.conf, device_ips.conf, remote_ips.conf, .vault.enc)"
         ;;
 
     *)
