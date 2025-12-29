@@ -3,7 +3,7 @@
 #  NETWATCHDTA UNIVERSAL UNINSTALLER
 # ==============================================================================
 #  Description: Emergency removal tool for netwatchdta
-#  Version: 1.4.2 (Fixed I/O Error)
+#  Version: 1.4.0 (Fixed I/O Error)
 #  Supported OS: OpenWrt & Linux (Systemd)
 #  Copyright (C) 2025 panoc
 # ==============================================================================
