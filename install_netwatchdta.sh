@@ -2,7 +2,7 @@
 # netwatchdta Installer - Automated Setup for OpenWrt & Linux (Universal)
 # Copyright (C) 2025 panoc
 # Licensed under the GNU General Public License v3.0
-SCRIPT_VERSION="1.4.0"
+SCRIPT_VERSION="1.4.1"
 
 # ==============================================================================
 #  SELF-CLEANUP MECHANISM
@@ -1051,7 +1051,14 @@ check_ip_logic() {
     local FD="$TMP_DIR/${TYPE}_${SAFE_IP}_d"; local FC="$TMP_DIR/${TYPE}_${SAFE_IP}_c"; local FT="$TMP_DIR/${TYPE}_${SAFE_IP}_t"
     local M_FLAG="NO"; [ "$TYPE" = "Device" ] && M_FLAG="$DISCORD_MENTION_LOCAL"; [ "$TYPE" = "Remote" ] && M_FLAG="$DISCORD_MENTION_REMOTE"
     
+    # --- PERFORM PING ---
     if ping -q -c "$P_COUNT" -w "$TO" "$TIP" >/dev/null 2>&1; then
+        # 1. SUCCESS: Log to Ping Log if enabled
+        if [ "$PING_LOG_ENABLE" = "YES" ]; then
+            log_msg "[$TYPE] $NAME ($TIP) - OK" "PING" "$NOW_HUMAN"
+        fi
+
+        # 2. SUCCESS: Recovery Logic (Main Log)
         if [ -f "$FD" ]; then
             read DSTART < "$FT"; read DSSEC < "$FD"
             local DUR=$(( NOW_SEC - DSSEC )); local DR_STR="$((DUR/60))m $((DUR%60))s"
@@ -1070,6 +1077,12 @@ check_ip_logic() {
         fi
         echo 0 > "$FC"
     else
+        # 1. FAILURE: Log to Ping Log if enabled
+        if [ "$PING_LOG_ENABLE" = "YES" ]; then
+            log_msg "[$TYPE] $NAME ($TIP) - FAIL / NO RESPONSE" "PING" "$NOW_HUMAN"
+        fi
+
+        # 2. FAILURE: Alert Logic (Main Log)
         local C=0; [ -f "$FC" ] && read C < "$FC"; C=$((C+1)); echo "$C" > "$FC"
         if [ "$C" -ge "$THRESH" ] && [ ! -f "$FD" ]; then
              echo "$NOW_SEC" > "$FD"; echo "$NOW_HUMAN" > "$FT"
